@@ -1,0 +1,36 @@
+name: realestate_app
+description: A modern Flutter real estate app with clean minimal design
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.1.0
+  cupertino_icons: ^1.0.6
+  firebase_core: ^4.2.1
+  cloud_firestore: ^6.1.0
+  firebase_auth: ^6.1.2
+  # google_sign_in: ^6.1.6  # Temporarily disabled due to dependency conflict
+  provider: ^6.1.1
+  firebase_storage: ^13.0.4
+  url_launcher: ^6.3.0
+  share_plus: ^7.2.1
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.0
+  geolocator: ^10.1.0
+  permission_handler: ^11.3.0
+  timeago: ^3.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - logo.jpeg
