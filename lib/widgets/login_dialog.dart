@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import 'signup_dialog.dart';
+import '../pages/agent/agent_login_page.dart';
 
 class LoginDialog extends StatelessWidget {
   const LoginDialog({super.key});
@@ -99,6 +100,25 @@ class LoginDialog extends StatelessWidget {
                   style: TextStyle(
                     color: AppTheme.textSecondary,
                     fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingSmall),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const AgentLoginPage(),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Login as Agent →',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),

@@ -46,4 +46,41 @@ class AgentService {
       throw 'Error fetching top agents: $e';
     }
   }
+
+  // Create a new agent
+  Future<String> createAgent(Agent agent) async {
+    try {
+      final docRef = await _firestore.collection(_collection).add(agent.toFirestore());
+      return docRef.id;
+    } catch (e) {
+      throw 'Error creating agent: $e';
+    }
+  }
+
+  // Update agent
+  Future<void> updateAgent(String agentId, Map<String, dynamic> data) async {
+    try {
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      await _firestore.collection(_collection).doc(agentId).update(data);
+    } catch (e) {
+      throw 'Error updating agent: $e';
+    }
+  }
+
+  // Get agent by user ID
+  Future<Agent?> getAgentByUserId(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        return Agent.fromFirestore(snapshot.docs.first);
+      }
+      return null;
+    } catch (e) {
+      throw 'Error fetching agent by user ID: $e';
+    }
+  }
 }

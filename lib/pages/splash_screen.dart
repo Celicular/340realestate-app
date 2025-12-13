@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import 'onboarding_screen.dart';
 import '../providers/auth_provider.dart';
 import 'main_navigation.dart';
+import 'agent/agent_navigation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 
 class SplashScreen extends StatefulWidget {
@@ -119,11 +120,37 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  void _navigateToHome() {
+  void _navigateToHome() async {
+    // Wait for user profile to load
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Give time for profile to load (it's already loading in the background)
+    // Extended to 5 seconds to ensure profile loads
+    int attempts = 0;
+    while (authProvider.userProfile == null && attempts < 50) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      attempts++;
+    }
+    
+    final userProfile = authProvider.userProfile;
+    
+    // Debug logging
+    debugPrint('=== SPLASH SCREEN ROUTING DEBUG ===');
+    debugPrint('User profile loaded: ${userProfile != null}');
+    debugPrint('User role: ${userProfile?.role}');
+    debugPrint('Is agent: ${userProfile?.isAgent}');
+    debugPrint('===================================');
+    
+    // Check if user is an agent
+    final Widget destination = (userProfile != null && userProfile.isAgent)
+        ? const AgentNavigation()
+        : const MainNavigation();
+
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const MainNavigation(),
+        pageBuilder: (context, animation, secondaryAnimation) => destination,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: animation,

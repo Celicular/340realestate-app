@@ -24,6 +24,9 @@ class Property {
   final PropertyType type;
   final double? latitude;
   final double? longitude;
+  final String? agentId; // Links to agent who created this property
+  final String status; // 'draft', 'published', 'archived'
+  final String? createdBy; // User ID who created this property
 
   Property({
     required this.id,
@@ -40,6 +43,9 @@ class Property {
     this.type = PropertyType.house,
     this.latitude,
     this.longitude,
+    this.agentId,
+    this.status = 'published',
+    this.createdBy,
   });
 
   // Create Property from Firestore document
@@ -145,6 +151,9 @@ class Property {
       type: _propertyTypeFromString(data['type']),
       latitude: latitude,
       longitude: longitude,
+      agentId: data['agentId'],
+      status: data['status'] ?? 'published',
+      createdBy: data['createdBy'],
     );
   }
 
@@ -162,8 +171,11 @@ class Property {
       'amenities': amenities,
       'isFeatured': isFeatured,
       'type': type.name,
-      'latitude': latitude,
-      'longitude': longitude,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (agentId != null) 'agentId': agentId,
+      'status': status,
+      if (createdBy != null) 'createdBy': createdBy,
     };
   }
 

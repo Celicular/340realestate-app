@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Agent {
   final String id;
+  final String? userId; // Links to User document
   final String name;
   final String email;
   final String? phone;
@@ -21,6 +22,7 @@ class Agent {
 
   Agent({
     required this.id,
+    this.userId,
     required this.name,
     required this.email,
     this.phone,
@@ -44,6 +46,7 @@ class Agent {
     final data = doc.data() as Map<String, dynamic>;
     return Agent(
       id: doc.id,
+      userId: data['userId'],
       name: data['name'] ?? '',
       email: data['email'] ?? '',
       phone: data['phone'],
@@ -72,6 +75,7 @@ class Agent {
   // Convert Agent to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
+      if (userId != null) 'userId': userId,
       'name': name,
       'email': email,
       if (phone != null) 'phone': phone,
@@ -111,6 +115,7 @@ class Agent {
   }) {
     return Agent(
       id: id,
+      userId: userId,
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone ?? this.phone,

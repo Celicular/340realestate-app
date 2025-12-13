@@ -218,4 +218,59 @@ class PropertyService {
       throw 'Error fetching properties by IDs: $e';
     }
   }
+
+  // ===== AGENT PROPERTY MANAGEMENT =====
+
+  // Create a new property (for agents)
+  Future<String> createProperty(Property property) async {
+    try {
+      final docRef = await _firestore.collection(_collection).add(property.toFirestore());
+      return docRef.id;
+    } catch (e) {
+      throw 'Error creating property: $e';
+    }
+  }
+
+  // Update property
+  Future<void> updateProperty(String propertyId, Map<String, dynamic> data) async {
+    try {
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      await _firestore.collection(_collection).doc(propertyId).update(data);
+    } catch (e) {
+      throw 'Error updating property: $e';
+    }
+  }
+
+  // Delete property
+  Future<void> deleteProperty(String propertyId) async {
+    try {
+      await _firestore.collection(_collection).doc(propertyId).delete();
+    } catch (e) {
+      throw 'Error deleting property: $e';
+    }
+  }
+
+  // Get properties by agent ID
+  Future<List<Property>> getPropertiesByAgent(String agentId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('agentId', isEqualTo: agentId)
+          .orderBy('createdAt', descending: true)
+          .get();
+      return snapshot.docs.map((doc) => Property.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw 'Error fetching agent properties: $e';
+    }
+  }
+
+  // Stream properties by agent ID
+  Stream<List<Property>> streamPropertiesByAgent(String agentId) {
+    return _firestore
+        .collection(_collection)
+        .where('agentId', isEqualTo: agentId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => Property.fromFirestore(doc)).toList());
+  }
 }

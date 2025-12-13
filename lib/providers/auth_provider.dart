@@ -103,6 +103,46 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Sign up as an agent
+  Future<bool> signUpAsAgent({
+    required String email,
+    required String password,
+    required String displayName,
+    String? phoneNumber,
+    required String agencyName,
+    required String licenseNumber,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final userCredential = await _authService.signUpWithEmailPassword(
+        email: email,
+        password: password,
+        displayName: displayName,
+        phoneNumber: phoneNumber,
+      );
+
+      if (userCredential != null && userCredential.user != null) {
+        await _userService.updateUser(userCredential.user!.uid, {
+          'role': 'agent',
+          'agencyName': agencyName,
+          'licenseNumber': licenseNumber,
+        });
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Sign in with Google - Temporarily disabled
   /*
   Future<bool> signInWithGoogle() async {
