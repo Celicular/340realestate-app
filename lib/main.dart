@@ -8,12 +8,16 @@ import 'providers/auth_provider.dart';
 import 'providers/property_provider.dart';
 import 'providers/rental_provider.dart';
 import 'providers/theme_provider.dart';
+import 'services/supabase_storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Initialize Supabase for image storage
+  await SupabaseStorageService.initialize();
   
   runApp(
     MultiProvider(

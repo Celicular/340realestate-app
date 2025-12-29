@@ -10,6 +10,7 @@ class RentalProperty {
   final int bedrooms;
   final int bathrooms;
   final int guests;
+  final int sqft;
   final double pricePerNight;
   final List<String> amenities;
   final List<String> imageLinks;
@@ -45,6 +46,7 @@ class RentalProperty {
     required this.bedrooms,
     required this.bathrooms,
     required this.guests,
+    required this.sqft,
     required this.pricePerNight,
     required this.amenities,
     required this.imageLinks,
@@ -134,15 +136,62 @@ class RentalProperty {
       bathrooms = toInt(data['bathrooms']);
       guests = toInt(data['guests']);
     }
+    
+    // Extract sqft from multiple possible locations
+    int sqft = 0;
+    // Try 1: details.squareFeet (as seen in firestore.js admin update)
+    if (data['details'] is Map) {
+      final det = data['details'] as Map<String, dynamic>;
+      sqft = toInt(det['squareFeet'] ?? 0);
+    }
+    // Try 2: accommodation.squareFeet
+    if (sqft == 0 && data['accommodation'] is Map) {
+      final acc = data['accommodation'] as Map<String, dynamic>;
+      sqft = toInt(acc['squareFeet'] ?? 0);
+    }
+    // Try 3: Direct sqft or squareFeet field
+    if (sqft == 0) {
+      sqft = toInt(data['sqft'] ?? data['squareFeet'] ?? 0);
+    }
 
-    // Extract price from propertyInfo or direct field
+    // Extract price from propertyInfo or direct field or rates object
+    // Note: Firebase stores prices per week, so divide by 7 to get per night
     double pricePerNight = 0;
+    
+    // Try 1: Direct pricePerNight field
     if (data['propertyInfo'] is Map) {
       final propInfo = data['propertyInfo'] as Map<String, dynamic>;
-      pricePerNight =
-          toDouble(propInfo['pricePerNight'] ?? data['pricePerNight']);
-    } else {
-      pricePerNight = toDouble(data['pricePerNight']);
+      pricePerNight = toDouble(propInfo['pricePerNight'] ?? 0);
+    }
+    if (pricePerNight == 0) {
+      pricePerNight = toDouble(data['pricePerNight'] ?? 0);
+    }
+    
+    // Try 2: Nested property.propertyInfo.pricePerNight (as seen in firestore.js)
+    if (pricePerNight == 0 && data['property'] is Map) {
+      final property = data['property'] as Map<String, dynamic>;
+      if (property['propertyInfo'] is Map) {
+        final nestedPropInfo = property['propertyInfo'] as Map<String, dynamic>;
+        pricePerNight = toDouble(nestedPropInfo['pricePerNight'] ?? 0);
+      }
+    }
+    
+    // Try 3: rates object (weekly, baseRate, seasonalRate, etc.)
+    if (pricePerNight == 0 && data['rates'] is Map) {
+      final rates = data['rates'] as Map<String, dynamic>;
+      pricePerNight = toDouble(
+        rates['weekly'] ?? 
+        rates['pricePerWeek'] ?? 
+        rates['weeklyRate'] ?? 
+        rates['baseRate'] ??
+        rates['seasonalRate'] ??
+        0
+      );
+    }
+    
+    // Divide by 7 to convert weekly to nightly (only if we got a value)
+    if (pricePerNight > 0) {
+      pricePerNight = pricePerNight / 7;
     }
 
     // Extract latitude and longitude from location map or direct fields
@@ -174,15 +223,34 @@ class RentalProperty {
       bedrooms: bedrooms,
       bathrooms: bathrooms,
       guests: guests,
+      sqft: sqft,
       pricePerNight: pricePerNight,
       amenities: data['amenities'] is List
           ? (data['amenities'] as List).map((e) => e.toString()).toList()
           : [],
-      imageLinks: data['imageLinks'] != null
-          ? sanitizeLinks(data['imageLinks'])
-          : sanitizeLinks(data['media'] != null
-              ? (data['media'] as Map<String, dynamic>)['imageLinks']
-              : null),
+      imageLinks: (() {
+        // Try multiple image field locations
+        // 1. Direct imageLinks array
+        if (data['imageLinks'] != null) {
+          return sanitizeLinks(data['imageLinks']);
+        }
+        // 2. media.imageList array (primary in firestore.js)
+        if (data['media'] is Map) {
+          final media = data['media'] as Map<String, dynamic>;
+          if (media['imageList'] != null) {
+            return sanitizeLinks(media['imageList']);
+          }
+          // 3. media.imageLinks array (backward compatibility)
+          if (media['imageLinks'] != null) {
+            return sanitizeLinks(media['imageLinks']);
+          }
+        }
+        // 4. Single image field (convert to array)
+        if (data['image'] is String && data['image'].toString().isNotEmpty) {
+          return [data['image'].toString().replaceAll('`', '').trim()];
+        }
+        return <String>[];
+      })(),
       accommodation: data['accommodation'] as Map<String, dynamic>?,
       agentInfo: data['agentInfo'] as Map<String, dynamic>?,
       rates: data['rates'] as Map<String, dynamic>?,
@@ -231,6 +299,7 @@ class RentalProperty {
       'bedrooms': bedrooms,
       'bathrooms': bathrooms,
       'guests': guests,
+      'sqft': sqft,
       'pricePerNight': pricePerNight,
       'amenities': amenities,
       'imageLinks': imageLinks,
@@ -258,13 +327,27 @@ class RentalProperty {
 
   // Helper getters
   String get imageUrl {
+    // First check if imageLinks was populated
     if (imageLinks.isNotEmpty) return imageLinks.first;
-    if (media != null && media!['imageLinks'] is List) {
-      final links = (media!['imageLinks'] as List)
-          .map((e) => e.toString().replaceAll('`', '').trim())
-          .toList();
-      if (links.isNotEmpty) return links.first;
+    
+    // Fallback to media object if imageLinks is empty
+    if (media != null) {
+      // Try imageList first (primary field in firestore.js)
+      if (media!['imageList'] is List) {
+        final links = (media!['imageList'] as List)
+            .map((e) => e.toString().replaceAll('`', '').trim())
+            .toList();
+        if (links.isNotEmpty) return links.first;
+      }
+      // Try imageLinks (backward compatibility)
+      if (media!['imageLinks'] is List) {
+        final links = (media!['imageLinks'] as List)
+            .map((e) => e.toString().replaceAll('`', '').trim())
+            .toList();
+        if (links.isNotEmpty) return links.first;
+      }
     }
+    
     return '';
   }
 

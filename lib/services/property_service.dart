@@ -253,13 +253,20 @@ class PropertyService {
   // Get properties by agent ID
   Future<List<Property>> getPropertiesByAgent(String agentId) async {
     try {
+      // Simple query without orderBy to avoid composite index requirement
       final snapshot = await _firestore
           .collection(_collection)
           .where('agentId', isEqualTo: agentId)
-          .orderBy('createdAt', descending: true)
           .get();
-      return snapshot.docs.map((doc) => Property.fromFirestore(doc)).toList();
+      
+      final properties = snapshot.docs.map((doc) => Property.fromFirestore(doc)).toList();
+      
+      // Sort by name in Dart (since we can't easily sort by createdAt without index)
+      properties.sort((a, b) => b.name.compareTo(a.name));
+      
+      return properties;
     } catch (e) {
+      print('Error fetching agent properties: $e');
       throw 'Error fetching agent properties: $e';
     }
   }
@@ -269,8 +276,11 @@ class PropertyService {
     return _firestore
         .collection(_collection)
         .where('agentId', isEqualTo: agentId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => Property.fromFirestore(doc)).toList());
+        .map((snapshot) {
+          final properties = snapshot.docs.map((doc) => Property.fromFirestore(doc)).toList();
+          properties.sort((a, b) => b.name.compareTo(a.name));
+          return properties;
+        });
   }
 }

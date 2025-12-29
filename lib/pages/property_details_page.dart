@@ -36,8 +36,7 @@ class PropertyDetailsPage extends StatefulWidget {
 class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
   bool _descExpanded = false;
   bool _amenitiesExpanded = false;
-  String? _agentName;
-  String? _agentEmail;
+  
   @override
   void initState() {
     super.initState();
@@ -50,21 +49,6 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
         final prop = Provider.of<PropertyProvider>(context, listen: false);
         prop.addLocalRecentlyViewed(widget.property);
       } catch (_) {}
-
-      // Load rental agent info when applicable
-      if (widget.property.type == PropertyType.rental) {
-        try {
-          final rental =
-              await RentalService().getRentalById(widget.property.id);
-          if (mounted && rental?.agentInfo != null) {
-            final info = rental!.agentInfo!;
-            setState(() {
-              _agentName = info['name']?.toString();
-              _agentEmail = info['email']?.toString();
-            });
-          }
-        } catch (_) {}
-      }
     });
   }
 
@@ -203,11 +187,6 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                     const SizedBox(height: AppTheme.spacingMedium),
                     Builder(
                       builder: (context) {
-                        const maptKey = String.fromEnvironment(
-                          'MAPTILER_KEY',
-                          defaultValue: Secrets.maptilerKey,
-                        );
-                        final hasKey = maptKey.isNotEmpty;
                         final hasCoordinates = widget.property.latitude != null && 
                             widget.property.longitude != null;
                         final mapCenter = hasCoordinates
@@ -216,13 +195,12 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                         final mapZoom = hasCoordinates ? 15.0 : 11.0;
                         
                         return GestureDetector(
-                          onTap: hasKey ? () => _showFullScreenMap(
+                          onTap: () => _showFullScreenMap(
                             context, 
                             mapCenter, 
                             mapZoom, 
                             hasCoordinates,
-                            maptKey,
-                          ) : null,
+                          ),
                           child: Stack(
                             children: [
                               Container(
@@ -234,73 +212,62 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                                       AppTheme.borderRadiusMedium),
                                 ),
                                 clipBehavior: Clip.hardEdge,
-                                child: hasKey
-                                    ? FlutterMap(
-                                        options: MapOptions(
-                                          initialCenter: mapCenter,
-                                          initialZoom: mapZoom,
-                                          interactionOptions: const InteractionOptions(
-                                            flags: InteractiveFlag.none,
-                                          ),
-                                        ),
-                                        children: [
-                                          TileLayer(
-                                            urlTemplate:
-                                                'https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=$maptKey',
-                                            userAgentPackageName:
-                                                'com.company.RealEstate',
-                                            maxZoom: 22,
-                                            errorTileCallback:
-                                                (tile, error, stack) {},
-                                          ),
-                                          if (hasCoordinates)
-                                            MarkerLayer(
-                                              markers: [
-                                                Marker(
-                                                  point: mapCenter,
-                                                  width: 40,
-                                                  height: 40,
-                                                  child: const Icon(
-                                                    Icons.location_pin,
-                                                    color: Colors.red,
-                                                    size: 40,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                        ],
-                                      )
-                                    : Center(
-                                        child: Text(
-                                          'Map unavailable: set MAPTILER_KEY',
-                                          style:
-                                              Theme.of(context).textTheme.bodyMedium,
-                                        ),
-                                      ),
-                              ),
-                              if (hasKey)
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.9),
-                                      borderRadius: BorderRadius.circular(8),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.1),
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.fullscreen,
-                                      size: 20,
-                                      color: AppTheme.primaryColor,
+                                child: FlutterMap(
+                                  options: MapOptions(
+                                    initialCenter: mapCenter,
+                                    initialZoom: mapZoom,
+                                    interactionOptions: const InteractionOptions(
+                                      flags: InteractiveFlag.none,
                                     ),
                                   ),
+                                  children: [
+                                    TileLayer(
+                                      urlTemplate:
+                                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                      userAgentPackageName:
+                                          'com.company.RealEstate',
+                                      maxZoom: 19,
+                                    ),
+                                    if (hasCoordinates)
+                                      MarkerLayer(
+                                        markers: [
+                                          Marker(
+                                            point: mapCenter,
+                                            width: 40,
+                                            height: 40,
+                                            child: const Icon(
+                                              Icons.location_pin,
+                                              color: Colors.red,
+                                              size: 40,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
                                 ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.1),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.fullscreen,
+                                    size: 20,
+                                    color: AppTheme.primaryColor,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         );
@@ -308,14 +275,8 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                     ),
                     const SizedBox(height: AppTheme.spacingXLarge),
 
-                    // Agent Card
-                    Text(
-                      'Listing Agent',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: AppTheme.spacingMedium),
-                    _buildAgentCard(),
-                    const SizedBox(height: AppTheme.spacingXLarge),
+                    // Add extra padding to account for bottom action bar
+                    const SizedBox(height: 100), // Space for bottom buttons
                   ],
                 ),
               ),
@@ -643,91 +604,15 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
     );
   }
 
-  Widget _buildAgentCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppTheme.borderColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-            child: const Icon(Icons.person, color: AppTheme.primaryColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Listing Agent',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                if (widget.property.type == PropertyType.rental)
-                  Text(
-                    (_agentName?.isNotEmpty ?? false) ? _agentName! : '—',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  )
-                else
-                  Text(
-                    '340 Real Estate',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                if (widget.property.type == PropertyType.rental &&
-                    (_agentEmail?.isNotEmpty ?? false))
-                  Text(
-                    _agentEmail!,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppTheme.textSecondary),
-                  ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.message, color: AppTheme.primaryColor),
-            onPressed: () {
-              _openAgentEmail();
-            },
-          ),
-        ],
-      ),
-    );
-  }
 
-  Future<void> _openAgentEmail() async {
-    final email = _agentEmail ?? '340realestateco@gmail.com';
-    final uri = Uri(scheme: 'mailto', path: email);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
-      } else {
-        final web =
-            Uri.parse('https://mail.google.com/mail/?view=cm&fs=1&to=$email');
-        if (await canLaunchUrl(web)) {
-          await launchUrl(web, mode: LaunchMode.externalApplication);
-        } else {
-          throw 'No mail app found';
-        }
-      }
-    } catch (e) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Unable to open mail app')),
-      );
-    }
-  }
+
+
 
   void _showFullScreenMap(
     BuildContext context,
     LatLng center,
     double zoom,
     bool hasCoordinates,
-    String maptKey,
   ) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -773,10 +658,9 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
             children: [
               TileLayer(
                 urlTemplate:
-                    'https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=$maptKey',
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.company.RealEstate',
-                maxZoom: 22,
-                errorTileCallback: (tile, error, stack) {},
+                maxZoom: 19,
               ),
               if (hasCoordinates)
                 MarkerLayer(

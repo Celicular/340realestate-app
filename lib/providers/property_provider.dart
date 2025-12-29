@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/property.dart';
 import '../models/rental_property.dart';
-import '../services/property_service.dart';
+import '../models/residential_portfolio.dart';
+import '../models/land_portfolio.dart';
 import '../services/rental_service.dart';
 import '../services/location_service.dart';
 import 'package:geolocator/geolocator.dart';
 
 class PropertyProvider with ChangeNotifier {
-  final PropertyService _propertyService = PropertyService();
   final RentalService _rentalService = RentalService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Property> _properties = [];
   List<Property> _featuredProperties = [];
@@ -33,29 +35,31 @@ class PropertyProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // Fetch all properties (Sale + Rentals)
+  // Fetch all properties (Buy: residential + land, Rent: rentals)
   Future<void> fetchProperties() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Fetch both concurrently
+      // Fetch from all collections concurrently
       final results = await Future.wait([
-        _propertyService.getAllProperties(),
+        _fetchResidentialProperties(),
+        _fetchLandProperties(),
         _rentalService.getAllRentals(),
       ]);
 
-      final saleProperties = results[0] as List<Property>;
-      final rentalProperties = results[1] as List<RentalProperty>;
+      final residentialProperties = results[0] as List<Property>;
+      final landProperties = results[1] as List<Property>;
+      final rentalProperties = results[2] as List<RentalProperty>;
 
       // Map rentals to Property objects
       final mappedRentals = rentalProperties
           .map((rental) => _mapRentalToProperty(rental))
           .toList();
 
-      // Combine lists
-      _properties = [...saleProperties, ...mappedRentals];
+      // Combine all properties
+      _properties = [...residentialProperties, ...landProperties, ...mappedRentals];
 
       _applyFilters();
       _isLoading = false;
@@ -65,6 +69,88 @@ class PropertyProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Fetch residential properties from residentialPortfolio collection
+  Future<List<Property>> _fetchResidentialProperties() async {
+    try {
+      final snapshot = await _firestore.collection('residentialPortfolio').get();
+      return snapshot.docs
+          .map((doc) => ResidentialPortfolio.fromFirestore(doc))
+          .map((r) => _mapResidentialToProperty(r))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching residential: $e');
+      return [];
+    }
+  }
+
+  // Fetch land properties from landPortfolio collection
+  Future<List<Property>> _fetchLandProperties() async {
+    try {
+      final snapshot = await _firestore.collection('landPortfolio').get();
+      return snapshot.docs
+          .map((doc) => LandPortfolio.fromFirestore(doc))
+          .map((l) => _mapLandToProperty(l))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching land: $e');
+      return [];
+    }
+  }
+
+  // Helper to parse price string to double
+  double _parsePrice(String s) {
+    final cleaned = s.replaceAll(RegExp(r'[^0-9\.]'), '');
+    return double.tryParse(cleaned) ?? 0;
+  }
+
+  // Helper to parse sqft string to int
+  int _parseSqft(String s) {
+    final cleaned = s.replaceAll(RegExp(r'[^0-9]'), '');
+    return int.tryParse(cleaned) ?? 0;
+  }
+
+  // Helper to map ResidentialPortfolio to Property
+  Property _mapResidentialToProperty(ResidentialPortfolio r) {
+    return Property(
+      id: r.id,
+      name: r.title,
+      location: r.location,
+      price: _parsePrice(r.price),
+      imageUrl: r.imageUrl,
+      description: r.description,
+      bedrooms: r.bedrooms,
+      bathrooms: r.bathrooms,
+      sqft: _parseSqft(r.sqft),
+      amenities: r.amenities,
+      isFeatured: false,
+      type: PropertyType.sale,
+      latitude: r.latitude,
+      longitude: r.longitude,
+    );
+  }
+
+  // Helper to map LandPortfolio to Property
+  Property _mapLandToProperty(LandPortfolio l) {
+    final acres = l.lotSizeAcres;
+    final sqft = acres > 0 ? (acres * 43560).round() : 0;
+    return Property(
+      id: l.id,
+      name: l.title,
+      location: l.locationString,
+      price: l.price,
+      imageUrl: l.imageUrl,
+      description: l.description,
+      bedrooms: 0,
+      bathrooms: 0,
+      sqft: sqft,
+      amenities: l.amenities ?? [],
+      isFeatured: false,
+      type: PropertyType.sale,
+      latitude: l.latitude,
+      longitude: l.longitude,
+    );
   }
 
   // Helper to map RentalProperty to Property
@@ -225,22 +311,11 @@ class PropertyProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Try fetching from properties first
-      final properties = await _propertyService.getPropertiesByIds(ids);
+      // Fetch only from rentals collection
+      final rentals = await _rentalService.getRentalsByIds(ids);
+      final mappedRentals = rentals.map((r) => _mapRentalToProperty(r)).toList();
 
-      // Identify missing IDs
-      final foundIds = properties.map((p) => p.id).toSet();
-      final missingIds = ids.where((id) => !foundIds.contains(id)).toList();
-
-      if (missingIds.isNotEmpty) {
-        // Try fetching from rentals
-        final rentals = await _rentalService.getRentalsByIds(missingIds);
-        final mappedRentals =
-            rentals.map((r) => _mapRentalToProperty(r)).toList();
-        properties.addAll(mappedRentals);
-      }
-
-      _favoriteProperties = properties;
+      _favoriteProperties = mappedRentals;
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -265,18 +340,11 @@ class PropertyProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      var properties = await _propertyService.getPropertiesByIds(ids);
-      final foundIds = properties.map((p) => p.id).toSet();
-      final missingIds = ids.where((id) => !foundIds.contains(id)).toList();
+      // Fetch only from rentals collection
+      final rentals = await _rentalService.getRentalsByIds(ids);
+      final mappedRentals = rentals.map((r) => _mapRentalToProperty(r)).toList();
 
-      if (missingIds.isNotEmpty) {
-        final rentals = await _rentalService.getRentalsByIds(missingIds);
-        final mappedRentals =
-            rentals.map((r) => _mapRentalToProperty(r)).toList();
-        properties.addAll(mappedRentals);
-      }
-
-      final byId = {for (final p in properties) p.id: p};
+      final byId = {for (final p in mappedRentals) p.id: p};
       _recentlyViewedProperties = ids
           .where((id) => byId.containsKey(id))
           .map((id) => byId[id]!)

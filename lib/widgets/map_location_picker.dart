@@ -198,11 +198,6 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
 
   @override
   Widget build(BuildContext context) {
-    const maptKey = String.fromEnvironment(
-      'MAPTILER_KEY',
-      defaultValue: Secrets.maptilerKey,
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Location'),
@@ -229,9 +224,9 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=$maptKey',
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.company.RealEstate',
-                maxZoom: 22,
+                maxZoom: 19,
               ),
               MarkerLayer(
                 markers: [

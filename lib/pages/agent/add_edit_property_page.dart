@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../services/property_service.dart';
+import '../../services/supabase_storage_service.dart';
 import '../../models/property.dart';
 import '../../widgets/map_location_picker.dart';
+import 'agent_navigation.dart';
 
 class AddEditPropertyPage extends StatefulWidget {
   final String? agentId;
@@ -27,14 +31,19 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
   late TextEditingController _bedroomsController;
   late TextEditingController _bathroomsController;
   late TextEditingController _sqftController;
-  late TextEditingController _imageUrlController;
 
   bool _isLoading = false;
+  bool _isUploadingImage = false;
   String _selectedStatus = 'published';
   PropertyType _selectedType = PropertyType.house;
   double? _latitude;
   double? _longitude;
   String _locationAddress = '';
+  
+  // Image handling
+  List<XFile> _selectedImages = [];
+  List<String> _uploadedImageUrls = [];
+  String? _mainImageUrl;
 
   @override
   void initState() {
@@ -54,7 +63,6 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
     _sqftController = TextEditingController(
       text: widget.property?.sqft.toString() ?? '',
     );
-    _imageUrlController = TextEditingController(text: widget.property?.imageUrl ?? '');
     
     if (widget.property != null) {
       _selectedStatus = widget.property!.status;
@@ -63,6 +71,11 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
       _longitude = widget.property!.longitude;
       if (widget.property!.location.isNotEmpty) {
         _locationAddress = widget.property!.location;
+      }
+      // Load existing image if present
+      if (widget.property!.imageUrl.isNotEmpty) {
+        _mainImageUrl = widget.property!.imageUrl;
+        _uploadedImageUrls = [widget.property!.imageUrl];
       }
     }
   }
@@ -76,8 +89,101 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
     _bedroomsController.dispose();
     _bathroomsController.dispose();
     _sqftController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      XFile? image;
+      if (source == ImageSource.gallery) {
+        image = await SupabaseStorageService.pickImageFromGallery();
+      } else {
+        image = await SupabaseStorageService.pickImageFromCamera();
+      }
+      
+      if (image != null) {
+        setState(() {
+          _selectedImages.add(image!);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickMultipleImages() async {
+    try {
+      final images = await SupabaseStorageService.pickMultipleImages();
+      if (images.isNotEmpty) {
+        setState(() {
+          _selectedImages.addAll(images);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking images: $e')),
+        );
+      }
+    }
+  }
+
+  void _removeSelectedImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
+  void _removeUploadedImage(int index) {
+    setState(() {
+      final removedUrl = _uploadedImageUrls.removeAt(index);
+      if (_mainImageUrl == removedUrl && _uploadedImageUrls.isNotEmpty) {
+        _mainImageUrl = _uploadedImageUrls.first;
+      } else if (_uploadedImageUrls.isEmpty) {
+        _mainImageUrl = null;
+      }
+    });
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose Multiple Images'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickMultipleImages();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _saveProperty() async {
@@ -89,10 +195,52 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
       return;
     }
 
+    // Check if at least one image is available
+    if (_selectedImages.isEmpty && _uploadedImageUrls.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add at least one property image')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       final propertyService = PropertyService();
+      
+      // Generate a temporary property ID for new properties
+      final tempPropertyId = widget.property?.id ?? 
+          'prop_${DateTime.now().millisecondsSinceEpoch}';
+      
+      // Upload new images to Supabase
+      if (_selectedImages.isNotEmpty) {
+        setState(() => _isUploadingImage = true);
+        
+        // NOTE: Using rentalProperties bucket for ALL property types
+        // because portfolio-images bucket has restrictive RLS policies
+        // To use portfolio-images, update the bucket's RLS policies in Supabase
+        const isRental = true; // Force rental bucket for now
+        
+        for (final image in _selectedImages) {
+          final url = await SupabaseStorageService.uploadPropertyImage(
+            imageFile: image,
+            propertyId: tempPropertyId,
+            isRental: isRental,
+            // For non-rental properties, default to residential portfolio
+            portfolioType: PortfolioType.residential,
+          );
+          if (url != null) {
+            _uploadedImageUrls.add(url);
+          }
+        }
+        
+        setState(() => _isUploadingImage = false);
+      }
+      
+      // Set main image URL
+      final imageUrl = _uploadedImageUrls.isNotEmpty 
+          ? _uploadedImageUrls.first 
+          : '';
       
       if (widget.property != null) {
         // Update existing property
@@ -106,7 +254,8 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
           'bedrooms': int.parse(_bedroomsController.text.trim()),
           'bathrooms': int.parse(_bathroomsController.text.trim()),
           'sqft': int.parse(_sqftController.text.trim()),
-          'imageUrl': _imageUrlController.text.trim(),
+          'imageUrl': imageUrl,
+          'images': _uploadedImageUrls,
           'status': _selectedStatus,
           'type': _selectedType.name,
           if (_latitude != null) 'latitude': _latitude,
@@ -117,7 +266,11 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Property updated successfully')),
           );
-          Navigator.of(context).pop(true);
+          // Navigate back to agent portal explicitly
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const AgentNavigation()),
+            (route) => false,
+          );
         }
       } else {
         // Create new property
@@ -132,7 +285,7 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
           bedrooms: int.parse(_bedroomsController.text.trim()),
           bathrooms: int.parse(_bathroomsController.text.trim()),
           sqft: int.parse(_sqftController.text.trim()),
-          imageUrl: _imageUrlController.text.trim(),
+          imageUrl: imageUrl,
           amenities: [],
           type: _selectedType,
           status: _selectedStatus,
@@ -148,11 +301,18 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Property created successfully')),
           );
-          Navigator.of(context).pop(true);
+          // Navigate back to agent portal explicitly
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const AgentNavigation()),
+            (route) => false,
+          );
         }
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isUploadingImage = false;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
@@ -186,6 +346,211 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
     }
   }
 
+  Widget _buildImageSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Property Images *',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _showImagePickerOptions,
+              icon: const Icon(Icons.add_photo_alternate),
+              label: const Text('Add Image'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        
+        // Show uploaded images
+        if (_uploadedImageUrls.isNotEmpty) ...[
+          Text(
+            'Uploaded Images',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _uploadedImageUrls.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          _uploadedImageUrls[index],
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 120,
+                              height: 120,
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.broken_image),
+                            );
+                          },
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _removeUploadedImage(index),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (index == 0)
+                        Positioned(
+                          bottom: 4,
+                          left: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Main',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        
+        // Show selected (not yet uploaded) images
+        if (_selectedImages.isNotEmpty) ...[
+          Text(
+            'New Images (will be uploaded)',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.green[700],
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _selectedImages.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(_selectedImages[index].path),
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _removeSelectedImage(index),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        
+        // Empty state
+        if (_uploadedImageUrls.isEmpty && _selectedImages.isEmpty)
+          GestureDetector(
+            onTap: _showImagePickerOptions,
+            child: Container(
+              height: 150,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.grey[400]!,
+                  style: BorderStyle.solid,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.grey[100],
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 48,
+                      color: Colors.grey[500],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap to add property images',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.property != null;
@@ -202,6 +567,10 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Image Section
+              _buildImageSection(),
+              const SizedBox(height: 24),
+
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -340,20 +709,6 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
               ),
               const SizedBox(height: 16),
 
-              TextFormField(
-                controller: _imageUrlController,
-                decoration: InputDecoration(
-                  labelText: 'Image URL *',
-                  hintText: 'https://example.com/image.jpg',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
-                  ),
-                ),
-                validator: (value) =>
-                    value?.isEmpty ?? true ? 'Required' : null,
-              ),
-              const SizedBox(height: 16),
-
               DropdownButtonFormField<PropertyType>(
                 value: _selectedType,
                 decoration: InputDecoration(
@@ -402,13 +757,28 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveProperty,
                   child: _isLoading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              _isUploadingImage 
+                                  ? 'Uploading Images...' 
+                                  : 'Saving...',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         )
                       : Text(
                           isEditing ? 'Update Property' : 'Create Property',
@@ -426,3 +796,4 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
     );
   }
 }
+

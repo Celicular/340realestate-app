@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/agent_service.dart';
 import '../../models/agent.dart';
+import '../../widgets/otp_dialog.dart';
 import 'agent_navigation.dart';
 import 'agent_registration_page.dart';
 
@@ -20,6 +21,7 @@ class _AgentLoginPageState extends State<AgentLoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  String? _currentOtp;
 
   @override
   void dispose() {
@@ -52,11 +54,55 @@ class _AgentLoginPageState extends State<AgentLoginPage> {
       // Check if user is actually an agent
       final userProfile = authProvider.userProfile;
       
-      if (userProfile != null && userProfile.isAgent) {
-        // Navigate to agent interface
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const AgentNavigation()),
-        );
+      // Check both profile and cached role
+      final isAgent = (userProfile != null && userProfile.isAgent) || 
+                      authProvider.isAgentFromCache;
+      
+      if (isAgent) {
+        // Send OTP before allowing access
+        final email = _emailController.text.trim();
+        final otp = await authProvider.sendOtp(email);
+        
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        if (otp != null) {
+          _currentOtp = otp;
+          // Show OTP dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) => OtpDialog(
+              email: email,
+              correctOtp: otp,
+              onVerified: () {
+                authProvider.setOtpVerified(true);
+                Navigator.pop(dialogContext); // Close OTP dialog
+                // Navigate to agent interface
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const AgentNavigation()),
+                );
+              },
+              onResendOtp: () async {
+                final newOtp = await authProvider.sendOtp(email);
+                if (newOtp != null) {
+                  _currentOtp = newOtp;
+                }
+              },
+            ),
+          );
+        } else {
+          // Failed to send OTP, sign out the user
+          await authProvider.signOut();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(authProvider.error ?? 'Failed to send verification email'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       } else {
         // Not an agent
         await authProvider.signOut();
@@ -217,11 +263,12 @@ class _AgentLoginPageState extends State<AgentLoginPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      'Don\'t have an agent account? ',
+                      'Don\'t have an agent account?',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     TextButton(

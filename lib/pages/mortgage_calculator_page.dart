@@ -34,7 +34,44 @@ class _MortgageCalculatorPageState extends State<MortgageCalculatorPage> {
     final interestRate = double.tryParse(_interestRateController.text) ?? 0;
     final loanTerm = int.tryParse(_loanTermController.text) ?? 30;
 
-    if (price <= 0 || interestRate <= 0) {
+    // Validate inputs and show error messages
+    if (price <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid home price'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (interestRate <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid interest rate'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (downPayment >= price) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Down payment must be less than home price'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (loanTerm <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid loan term'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 

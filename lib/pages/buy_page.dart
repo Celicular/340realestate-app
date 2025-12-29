@@ -9,7 +9,6 @@ import '../models/residential_portfolio.dart';
 import '../models/land_portfolio.dart';
 import '../utils/animations.dart';
 import 'property_details_page.dart';
-import '../services/property_service.dart';
 
 class BuyPage extends StatefulWidget {
   const BuyPage({super.key});
@@ -22,16 +21,13 @@ class _BuyPageState extends State<BuyPage> {
 
   bool _loadingResidential = true;
   bool _loadingLand = true;
-  bool _loadingCommercial = true;
   bool _loadingLandMore = false;
   String _resSearch = '';
   String _landSearch = '';
-  String _commSearch = '';
   String? _resError;
 
   List<ResidentialPortfolio> _residential = [];
   List<LandPortfolio> _land = [];
-  List<Property> _commercial = [];
   final int _landPageSize = 10;
   DocumentSnapshot? _landLastDoc;
   bool _landHasMore = true;
@@ -46,17 +42,12 @@ class _BuyPageState extends State<BuyPage> {
   double? _landMinPrice;
   double? _landMaxPrice;
   String _landSort = 'none'; // none, price_asc, price_desc, newest, oldest
-  double? _commMinPrice;
-  double? _commMaxPrice;
-  int? _commMinBedrooms;
-  String _commSort = 'none';
 
   @override
   void initState() {
     super.initState();
     _fetchResidential();
     _fetchLandInitial();
-    _fetchCommercial();
     _landScrollController.addListener(_onLandScroll);
   }
 
@@ -138,17 +129,6 @@ class _BuyPageState extends State<BuyPage> {
     });
   }
 
-  Future<void> _fetchCommercial() async {
-    try {
-      final service = PropertyService();
-      final items = await service.getAllProperties();
-      _commercial = items.where((p) => p.type != PropertyType.rental).toList();
-    } catch (_) {}
-    setState(() {
-      _loadingCommercial = false;
-    });
-  }
-
   Future<void> _fetchLandMore() async {
     // Since we removed orderBy from server, pagination is handled by initial fetch
     // This is now a no-op since we fetch all in _fetchLandInitial
@@ -222,7 +202,7 @@ class _BuyPageState extends State<BuyPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 2,
       child: Scaffold(
         
         appBar: AppBar(
@@ -235,7 +215,6 @@ class _BuyPageState extends State<BuyPage> {
             tabs: const [
               Tab(text: 'Residential'),
               Tab(text: 'Land'),
-              Tab(text: 'Commercial'),
             ],
           ),
         ),
@@ -243,7 +222,6 @@ class _BuyPageState extends State<BuyPage> {
           children: [
             _buildResidentialTab(context),
             _buildLandTab(context),
-            _buildCommercialTab(context),
           ],
         ),
       ),
@@ -460,163 +438,6 @@ class _BuyPageState extends State<BuyPage> {
                 );
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCommercialTab(BuildContext context) {
-    var list = _commercial.where((p) {
-      if (_commSearch.isEmpty) return true;
-      final q = _commSearch.toLowerCase();
-      return p.name.toLowerCase().contains(q) || p.location.toLowerCase().contains(q);
-    }).toList();
-
-    list = list.where((p) {
-      if (_commMinPrice != null && p.price < _commMinPrice!) return false;
-      if (_commMaxPrice != null && p.price > _commMaxPrice!) return false;
-      if (_commMinBedrooms != null && p.bedrooms < _commMinBedrooms!) return false;
-      return true;
-    }).toList();
-
-    switch (_commSort) {
-      case 'price_asc':
-        list.sort((a, b) => a.price.compareTo(b.price));
-        break;
-      case 'price_desc':
-        list.sort((a, b) => b.price.compareTo(a.price));
-        break;
-      default:
-        break;
-    }
-
-    if (_loadingCommercial) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (list.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.business_outlined, size: 60, color: AppTheme.textTertiary),
-            const SizedBox(height: 16),
-            Text('No commercial listings', style: Theme.of(context).textTheme.titleMedium),
-          ],
-        ),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.all(AppTheme.spacingLarge),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: SearchBarWidget(
-                  hintText: 'Search commercial...',
-                  onChanged: (v) => setState(() => _commSearch = v),
-                ),
-              ),
-              const SizedBox(width: AppTheme.spacingSmall),
-              FilterButton(onTap: () => _showCommercialFilterDialog(context)),
-            ],
-          ),
-          const SizedBox(height: AppTheme.spacingMedium),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: AppTheme.spacingMedium,
-                mainAxisSpacing: AppTheme.spacingMedium,
-                childAspectRatio: 0.75,
-              ),
-              itemCount: list.length,
-              itemBuilder: (context, index) {
-                final property = list[index];
-                return AnimatedPropertyCard(
-                  property: property,
-                  index: index,
-                  heroTagPrefix: 'buy_commercial',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      AppAnimations.scaleRoute(
-                        PropertyDetailsPage(
-                          property: property,
-                          heroIndex: index,
-                          heroTagPrefix: 'buy_commercial',
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCommercialFilterDialog(BuildContext context) {
-    final minController = TextEditingController(text: _commMinPrice?.toString() ?? '');
-    final maxController = TextEditingController(text: _commMaxPrice?.toString() ?? '');
-    final bedsController = TextEditingController(text: _commMinBedrooms?.toString() ?? '');
-    String sort = _commSort;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Filters & Sort', style: Theme.of(context).textTheme.headlineMedium),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: minController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Min Price', prefixIcon: Icon(Icons.attach_money)),
-              ),
-              const SizedBox(height: AppTheme.spacingMedium),
-              TextField(
-                controller: maxController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Max Price', prefixIcon: Icon(Icons.attach_money)),
-              ),
-              const SizedBox(height: AppTheme.spacingMedium),
-              TextField(
-                controller: bedsController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Min Bedrooms', prefixIcon: Icon(Icons.bed)),
-              ),
-              const SizedBox(height: AppTheme.spacingMedium),
-              DropdownButtonFormField<String>(
-                initialValue: sort,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Sort', prefixIcon: Icon(Icons.sort)),
-                items: const [
-                  DropdownMenuItem(value: 'none', child: Text('None', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'price_asc', child: Text('Price: Low to High', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'price_desc', child: Text('Price: High to Low', overflow: TextOverflow.ellipsis)),
-                ],
-                onChanged: (v) => sort = v ?? 'none',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _commMinPrice = double.tryParse(minController.text);
-                _commMaxPrice = double.tryParse(maxController.text);
-                _commMinBedrooms = int.tryParse(bedsController.text);
-                _commSort = sort;
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Apply'),
           ),
         ],
       ),

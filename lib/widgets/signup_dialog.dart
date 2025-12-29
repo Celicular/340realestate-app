@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import 'login_dialog.dart';
+import 'otp_dialog.dart';
 
 class SignupDialog extends StatefulWidget {
   final VoidCallback? onSuccess;
@@ -19,6 +20,7 @@ class _SignupDialogState extends State<SignupDialog> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  String? _currentOtp;
 
   @override
   void dispose() {
@@ -30,30 +32,79 @@ class _SignupDialogState extends State<SignupDialog> {
   }
 
   Future<void> _handleSignup() async {
-    if (_formKey.currentState!.validate()) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!_formKey.currentState!.validate()) return;
 
-      final success = await authProvider.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        displayName: _nameController.text.trim(),
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final email = _emailController.text.trim();
+
+    // First, send OTP to verify email before creating account
+    final otp = await authProvider.sendOtp(email);
+    
+    if (!mounted) return;
+
+    if (otp != null) {
+      _currentOtp = otp;
+      // Show OTP dialog and wait for it to close
+      final result = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => OtpDialog(
+          email: email,
+          correctOtp: otp,
+          title: 'Verify Email',
+          onVerified: () {
+            // Just close the OTP dialog and return true
+            Navigator.pop(dialogContext, true);
+          },
+          onResendOtp: () async {
+            final newOtp = await authProvider.sendOtp(email);
+            if (newOtp != null) {
+              _currentOtp = newOtp;
+            }
+          },
+        ),
       );
-
-      if (!mounted) return;
-
-      if (success) {
-        Navigator.pop(context); // Close dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created successfully!')),
+      
+      // If OTP was verified (dialog returned true)
+      if (result == true && mounted) {
+        // Now create the account after OTP is verified
+        final success = await authProvider.signUp(
+          email: email,
+          password: _passwordController.text,
+          displayName: _nameController.text.trim(),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.error ?? 'Sign up failed'),
-            backgroundColor: Colors.red,
-          ),
-        );
+
+        if (!mounted) return;
+
+        if (success) {
+          authProvider.setOtpVerified(true);
+          Navigator.pop(context); // Close signup dialog
+          
+          // Show success message after dialog is closed
+          Future.microtask(() {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Account created successfully!')),
+              );
+              widget.onSuccess?.call();
+            }
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.error ?? 'Sign up failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Failed to send verification email'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

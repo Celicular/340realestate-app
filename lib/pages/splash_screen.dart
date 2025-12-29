@@ -124,6 +124,14 @@ class _SplashScreenState extends State<SplashScreen>
     // Wait for user profile to load
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
+    // First, check if we have a cached role for instant routing
+    // This ensures agents are routed correctly even before Firestore loads
+    bool isAgent = authProvider.isAgentFromCache;
+    
+    debugPrint('=== SPLASH SCREEN ROUTING DEBUG ===');
+    debugPrint('Cached role: ${authProvider.cachedRole}');
+    debugPrint('Is agent from cache: $isAgent');
+    
     // Give time for profile to load (it's already loading in the background)
     // Extended to 5 seconds to ensure profile loads
     int attempts = 0;
@@ -135,14 +143,20 @@ class _SplashScreenState extends State<SplashScreen>
     final userProfile = authProvider.userProfile;
     
     // Debug logging
-    debugPrint('=== SPLASH SCREEN ROUTING DEBUG ===');
     debugPrint('User profile loaded: ${userProfile != null}');
-    debugPrint('User role: ${userProfile?.role}');
-    debugPrint('Is agent: ${userProfile?.isAgent}');
+    debugPrint('User role from profile: ${userProfile?.role}');
+    debugPrint('Is agent from profile: ${userProfile?.isAgent}');
+    
+    // Use profile role if available, otherwise fall back to cached role
+    if (userProfile != null) {
+      isAgent = userProfile.isAgent;
+    }
+    
+    debugPrint('Final decision - Is agent: $isAgent');
     debugPrint('===================================');
     
-    // Check if user is an agent
-    final Widget destination = (userProfile != null && userProfile.isAgent)
+    // Route to appropriate screen
+    final Widget destination = isAgent
         ? const AgentNavigation()
         : const MainNavigation();
 

@@ -31,7 +31,7 @@ class _RentalsPageState extends State<RentalsPage> {
       description: r.description,
       bedrooms: r.bedrooms,
       bathrooms: r.bathrooms,
-      sqft: 0,
+      sqft: r.sqft,
       amenities: r.amenities,
       isFeatured: false,
       type: PropertyType.rental,

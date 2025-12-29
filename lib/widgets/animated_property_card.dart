@@ -165,14 +165,40 @@ class _AnimatedPropertyCardState extends State<AnimatedPropertyCard>
                                 '\$${widget.property.price.toStringAsFixed(0)} / ${mode == 'night' ? 'night' : 'week'}';
                           } catch (_) {}
                         }
-                        return Text(
-                          priceText,
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: AppTheme.primaryColor,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                        // Generate a consistent "viewing" count based on property ID
+                        final viewingCount = (widget.property.id.hashCode.abs() % 15) + 2;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              priceText,
+                              style:
+                                  Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        color: AppTheme.primaryColor,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.visibility,
+                                  size: 12,
+                                  color: Colors.orange.shade700,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$viewingCount people viewing',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontSize: 10,
+                                    color: Colors.orange.shade700,
+                                    fontWeight: FontWeight.w500,
                                   ),
+                                ),
+                              ],
+                            ),
+                          ],
                         );
                       }),
                     ],

@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/agent_service.dart';
 import '../../models/agent.dart';
+import '../../widgets/otp_dialog.dart';
 import 'agent_navigation.dart';
 
 class AgentRegistrationPage extends StatefulWidget {
@@ -28,6 +29,7 @@ class _AgentRegistrationPageState extends State<AgentRegistrationPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _currentOtp;
 
   @override
   void dispose() {
@@ -48,88 +50,129 @@ class _AgentRegistrationPageState extends State<AgentRegistrationPage> {
 
     setState(() => _isLoading = true);
 
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
-      // Sign up the user with role='agent'
-      final success = await authProvider.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        displayName: _nameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final email = _emailController.text.trim();
+
+    // First, send OTP to verify email before creating account
+    final otp = await authProvider.sendOtp(email);
+    
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (otp != null) {
+      _currentOtp = otp;
+      // Show OTP dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => OtpDialog(
+          email: email,
+          correctOtp: otp,
+          title: 'Verify Email',
+          onVerified: () async {
+            // Close OTP dialog first
+            Navigator.pop(dialogContext);
+            
+            setState(() => _isLoading = true);
+            
+            try {
+              // Now create the account after OTP is verified
+              final success = await authProvider.signUp(
+                email: email,
+                password: _passwordController.text,
+                displayName: _nameController.text.trim(),
+                phoneNumber: _phoneController.text.trim(),
+              );
+
+              if (!mounted) return;
+
+              if (success && authProvider.userId != null) {
+                // Update user role to 'agent'
+                await authProvider.updateProfile({'role': 'agent'});
+                
+                // Explicitly reload the profile to ensure role is updated
+                await Future.delayed(const Duration(milliseconds: 300));
+                
+                // Create Agent profile
+                final agentService = AgentService();
+                final agent = Agent(
+                  id: '', // Will be set by Firestore
+                  userId: authProvider.userId,
+                  name: _nameController.text.trim(),
+                  email: email,
+                  phone: _phoneController.text.trim(),
+                  title: _titleController.text.trim().isNotEmpty 
+                      ? _titleController.text.trim() 
+                      : 'Real Estate Agent',
+                  bio: _bioController.text.trim().isNotEmpty 
+                      ? _bioController.text.trim() 
+                      : null,
+                  location: _locationController.text.trim().isNotEmpty 
+                      ? _locationController.text.trim() 
+                      : null,
+                  experience: _experienceController.text.trim().isNotEmpty 
+                      ? _experienceController.text.trim() 
+                      : null,
+                  createdAt: DateTime.now(),
+                  status: 'active',
+                );
+
+                await agentService.createAgent(agent);
+
+                if (!mounted) return;
+
+                setState(() => _isLoading = false);
+                authProvider.setOtpVerified(true);
+
+                // Navigate to agent interface
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const AgentNavigation()),
+                );
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Registration successful! Welcome aboard.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else {
+                setState(() => _isLoading = false);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(authProvider.error ?? 'Registration failed'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              setState(() => _isLoading = false);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          onResendOtp: () async {
+            final newOtp = await authProvider.sendOtp(email);
+            if (newOtp != null) {
+              _currentOtp = newOtp;
+            }
+          },
+        ),
       );
-
-      if (!mounted) return;
-
-      if (success && authProvider.userId != null) {
-        // Update user role to 'agent'
-        await authProvider.updateProfile({'role': 'agent'});
-        
-        // Explicitly reload the profile to ensure role is updated
-        await Future.delayed(const Duration(milliseconds: 300));
-        
-        // Create Agent profile
-        final agentService = AgentService();
-        final agent = Agent(
-          id: '', // Will be set by Firestore
-          userId: authProvider.userId,
-          name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
-          phone: _phoneController.text.trim(),
-          title: _titleController.text.trim().isNotEmpty 
-              ? _titleController.text.trim() 
-              : 'Real Estate Agent',
-          bio: _bioController.text.trim().isNotEmpty 
-              ? _bioController.text.trim() 
-              : null,
-          location: _locationController.text.trim().isNotEmpty 
-              ? _locationController.text.trim() 
-              : null,
-          experience: _experienceController.text.trim().isNotEmpty 
-              ? _experienceController.text.trim() 
-              : null,
-          createdAt: DateTime.now(),
-          status: 'active',
-        );
-
-        await agentService.createAgent(agent);
-
-        if (!mounted) return;
-
-        setState(() => _isLoading = false);
-
-        // Navigate to agent interface
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const AgentNavigation()),
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Welcome aboard.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        setState(() => _isLoading = false);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(authProvider.error ?? 'Registration failed'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Failed to send verification email'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -401,11 +444,12 @@ class _AgentRegistrationPageState extends State<AgentRegistrationPage> {
                 ),
                 const SizedBox(height: 16),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      'Already have an account? ',
+                      'Already have an account?',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     TextButton(

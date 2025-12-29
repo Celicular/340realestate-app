@@ -107,6 +107,7 @@ class AppTheme {
           textStyle: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
       ),
@@ -213,6 +214,7 @@ class AppTheme {
           textStyle: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
       ),
@@ -314,7 +316,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
-          foregroundColor: Colors.black,
+          foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(
             horizontal: spacingXLarge,
@@ -326,6 +328,7 @@ class AppTheme {
           textStyle: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
       ),
@@ -429,7 +432,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: Colors.black,
+          foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(
             horizontal: spacingXLarge,
@@ -441,6 +444,7 @@ class AppTheme {
           textStyle: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
       ),

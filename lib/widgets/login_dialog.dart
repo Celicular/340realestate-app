@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import 'signup_dialog.dart';
+import 'otp_dialog.dart';
 import '../pages/agent/agent_login_page.dart';
 
 class LoginDialog extends StatelessWidget {
@@ -141,6 +142,7 @@ class _SignInDialogState extends State<SignInDialog> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  String? _currentOtp;
 
   @override
   void dispose() {
@@ -167,14 +169,61 @@ class _SignInDialogState extends State<SignInDialog> {
 
     if (!mounted) return;
 
-    setState(() => _isLoading = false);
-
     if (success) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Signed in successfully!')),
-      );
+      // Send OTP to email after successful login
+      final email = _emailController.text.trim();
+      final otp = await authProvider.sendOtp(email);
+      
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (otp != null) {
+        _currentOtp = otp;
+        // Show OTP dialog
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => OtpDialog(
+            email: email,
+            correctOtp: otp,
+            onVerified: () {
+              authProvider.setOtpVerified(true);
+              Navigator.pop(dialogContext); // Close OTP dialog
+            },
+            onResendOtp: () async {
+              final newOtp = await authProvider.sendOtp(email);
+              if (newOtp != null) {
+                _currentOtp = newOtp;
+              }
+            },
+          ),
+        );
+        
+        // After OTP dialog is closed, close the login dialog and show success
+        if (!mounted) return;
+        Navigator.pop(context); // Close login dialog
+        
+        // Use Future.microtask to ensure SnackBar shows after dialog is fully closed
+        Future.microtask(() {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Signed in successfully!')),
+            );
+          }
+        });
+      } else {
+        // Failed to send OTP, sign out the user
+        await authProvider.signOut();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.error ?? 'Failed to send verification email'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } else {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? 'Sign in failed'),

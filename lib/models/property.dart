@@ -176,6 +176,7 @@ class Property {
       if (agentId != null) 'agentId': agentId,
       'status': status,
       if (createdBy != null) 'createdBy': createdBy,
+      'createdAt': DateTime.now().toIso8601String(),
     };
   }
 
