@@ -14,7 +14,6 @@ import '../services/rental_service.dart';
 import '../services/property_service.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../config/secrets.dart';
 import '../services/booking_service.dart';
 
 class PropertyDetailsPage extends StatefulWidget {

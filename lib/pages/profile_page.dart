@@ -6,7 +6,6 @@ import '../widgets/login_dialog.dart';
 import 'edit_profile_page.dart';
 import 'notifications_page.dart';
 import 'help_support_page.dart';
-import 'about_page.dart';
 import 'booking_history_page.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -151,20 +150,6 @@ class ProfilePage extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => const HelpSupportPage(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildMenuItem(
-                          context,
-                          icon: Icons.info_outline,
-                          title: 'About',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const AboutPage(contentType: 'us'),
                               ),
                             );
                           },

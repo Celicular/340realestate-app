@@ -41,19 +41,6 @@ class MorePage extends StatelessWidget {
                 },
               ),
               _MenuItem(
-                icon: Icons.people,
-                title: 'Our Agents',
-                subtitle: 'Meet our real estate experts',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AgentsPage(),
-                    ),
-                  );
-                },
-              ),
-              _MenuItem(
                 icon: Icons.bookmark_outline,
                 title: 'Saved Properties',
                 subtitle: 'Your favorites in one place',
@@ -75,6 +62,19 @@ class MorePage extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const RecentlyViewedPage(),
+                    ),
+                  );
+                },
+              ),
+              _MenuItem(
+                icon: Icons.people,
+                title: 'Our Agents',
+                subtitle: 'Meet our real estate experts',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AgentsPage(),
                     ),
                   );
                 },

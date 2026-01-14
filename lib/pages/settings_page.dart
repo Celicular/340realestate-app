@@ -34,36 +34,6 @@ class SettingsPage extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: AppTheme.spacingXLarge),
-              // Language
-              _buildSettingItem(
-                context,
-                icon: Icons.language,
-                title: 'Language',
-                subtitle: 'English',
-                onTap: () {
-                  _showLanguageDialog(context);
-                },
-              ),
-              // Currency
-              _buildSettingItem(
-                context,
-                icon: Icons.attach_money,
-                title: 'Currency',
-                subtitle: 'USD (\$)',
-                onTap: () {
-                  _showCurrencyDialog(context);
-                },
-              ),
-              // Units
-              _buildSettingItem(
-                context,
-                icon: Icons.straighten,
-                title: 'Measurement Units',
-                subtitle: 'Square Feet',
-                onTap: () {
-                  _showUnitsDialog(context);
-                },
-              ),
               _buildSettingItem(
                 context,
                 icon: Icons.dark_mode_outlined,
@@ -185,83 +155,6 @@ class SettingsPage extends StatelessWidget {
           color: AppTheme.textTertiary,
         ),
         onTap: onTap,
-      ),
-    );
-  }
-
-  void _showLanguageDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Language'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('English'),
-              trailing: const Icon(Icons.check, color: AppTheme.primaryColor),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text('Spanish'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text('French'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showCurrencyDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Currency'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('USD (\$)'),
-              trailing: const Icon(Icons.check, color: AppTheme.primaryColor),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text('EUR (€)'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text('GBP (£)'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showUnitsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Measurement Units'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('Square Feet'),
-              trailing: const Icon(Icons.check, color: AppTheme.primaryColor),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              title: const Text('Square Meters'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
       ),
     );
   }
