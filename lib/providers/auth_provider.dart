@@ -261,6 +261,29 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Delete account
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _authService.deleteAccount();
+      _userProfile = null;
+      _isOtpVerified = false;
+      _generatedOtp = null;
+      _isLoading = false;
+      await _clearCachedRole();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Send password reset email
   Future<bool> sendPasswordResetEmail(String email) async {
     _isLoading = true;

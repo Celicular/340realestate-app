@@ -171,6 +171,14 @@ class ProfilePage extends StatelessWidget {
                             },
                             isDestructive: true,
                           ),
+                        if (user != null)
+                          _buildMenuItem(
+                            context,
+                            icon: Icons.delete_outline,
+                            title: 'Delete Account',
+                            onTap: () => _showDeleteAccountDialog(context, authProvider),
+                            isDestructive: true,
+                          ),
                       ],
                     ),
                   ),
@@ -221,5 +229,78 @@ class ProfilePage extends StatelessWidget {
         onTap: onTap,
       ),
     );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'Are you sure you want to delete your account? This action cannot be undone. '
+          'All your data, bookings, and saved properties will be permanently deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteAccount(context, authProvider);
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount(BuildContext context, AuthProvider authProvider) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final nav = Navigator.of(context);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final success = await authProvider.deleteAccount();
+
+      if (!context.mounted) return;
+
+      Navigator.pop(context);
+
+      if (success) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Account deleted successfully')),
+        );
+        nav.pushNamedAndRemoveUntil('/', (route) => false);
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(authProvider.error ?? 'Failed to delete account'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
