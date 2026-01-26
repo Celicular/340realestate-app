@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../providers/auth_provider.dart';
 import '../widgets/login_dialog.dart';
+import '../widgets/floating_chatbot.dart';
 import 'home_page.dart';
 import 'rentals_page.dart';
 import 'buy_page.dart';
@@ -74,11 +75,12 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+    return FloatingChatbot(
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _pages,
+        ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
@@ -128,6 +130,7 @@ class _MainNavigationState extends State<MainNavigation> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

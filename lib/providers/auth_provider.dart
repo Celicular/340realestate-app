@@ -4,12 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../services/email_service.dart';
+import '../services/fcm_service.dart';
 import '../models/user.dart' as app_user;
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
   final EmailService _emailService = EmailService();
+  final FCMService _fcmService = FCMService();
 
   // SharedPreferences keys for caching
   static const String _cachedRoleKey = 'cached_user_role';
@@ -141,6 +143,15 @@ class AuthProvider with ChangeNotifier {
 
     try {
       await _authService.signInWithEmailPassword(email, password);
+
+      // Save FCM token after successful login
+      if (_firebaseUser != null) {
+        final token = await _fcmService.getToken();
+        if (token != null) {
+          await _fcmService.saveTokenToFirestore(_firebaseUser!.uid, token);
+        }
+      }
+
       _isLoading = false;
       notifyListeners();
       return true;

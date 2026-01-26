@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
+import '../providers/comparison_provider.dart';
 
 class PropertyCard extends StatelessWidget {
   final Property property;
@@ -35,11 +37,13 @@ class PropertyCard extends StatelessWidget {
             // Property Image
             Expanded(
               flex: 3,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppTheme.borderRadiusMedium),
-                ),
-                child: property.imageUrl.isEmpty
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppTheme.borderRadiusMedium),
+                    ),
+                    child: property.imageUrl.isEmpty
                     ? Container(
                         color: Theme.of(context).colorScheme.primaryContainer,
                         child: Column(
@@ -103,6 +107,53 @@ class PropertyCard extends StatelessWidget {
                           );
                         },
                       ),
+                  ),
+                  // Comparison Checkbox
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Consumer<ComparisonProvider>(
+                      builder: (context, comparisonProvider, child) {
+                        final isSelected = comparisonProvider.isSelected(property.id);
+                        return GestureDetector(
+                          onTap: () {
+                            if (!isSelected && !comparisonProvider.canAddMore()) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Maximum 4 properties can be compared'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              return;
+                            }
+                            comparisonProvider.toggleProperty(property);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Theme.of(context).primaryColor
+                                  : Colors.white.withOpacity(0.8),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              isSelected ? Icons.check_circle : Icons.add_circle_outline,
+                              color: isSelected ? Colors.white : Theme.of(context).primaryColor,
+                              size: 24,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
             // Property Details

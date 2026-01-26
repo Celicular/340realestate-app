@@ -14,6 +14,13 @@ class User {
   final DateTime? updatedAt;
   final DateTime? lastLogin;
 
+  // New fields for features
+  final String? fcmToken;
+  final bool isKYCVerified;
+  final String? kycStatus; // 'pending', 'underReview', 'approved', 'rejected'
+  final DateTime? kycVerifiedAt;
+  final Map<String, dynamic>? preferences; // User property preferences for chatbot
+
   User({
     required this.uid,
     required this.email,
@@ -27,6 +34,11 @@ class User {
     required this.createdAt,
     this.updatedAt,
     this.lastLogin,
+    this.fcmToken,
+    this.isKYCVerified = false,
+    this.kycStatus,
+    this.kycVerifiedAt,
+    this.preferences,
   });
 
   factory User.fromFirestore(DocumentSnapshot doc) {
@@ -48,6 +60,11 @@ class User {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       lastLogin: (data['lastLogin'] as Timestamp?)?.toDate(),
+      fcmToken: data['fcmToken'],
+      isKYCVerified: data['isKYCVerified'] ?? false,
+      kycStatus: data['kycStatus'],
+      kycVerifiedAt: (data['kycVerifiedAt'] as Timestamp?)?.toDate(),
+      preferences: data['preferences'] as Map<String, dynamic>?,
     );
   }
 
@@ -65,6 +82,12 @@ class User {
       'createdAt': Timestamp.fromDate(createdAt),
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
       if (lastLogin != null) 'lastLogin': Timestamp.fromDate(lastLogin!),
+      if (fcmToken != null) 'fcmToken': fcmToken,
+      'isKYCVerified': isKYCVerified,
+      if (kycStatus != null) 'kycStatus': kycStatus,
+      if (kycVerifiedAt != null)
+        'kycVerifiedAt': Timestamp.fromDate(kycVerifiedAt!),
+      if (preferences != null) 'preferences': preferences,
     };
   }
 
@@ -79,6 +102,11 @@ class User {
     List<String>? recentlyViewed,
     DateTime? updatedAt,
     DateTime? lastLogin,
+    String? fcmToken,
+    bool? isKYCVerified,
+    String? kycStatus,
+    DateTime? kycVerifiedAt,
+    Map<String, dynamic>? preferences,
   }) {
     return User(
       uid: uid,
@@ -93,6 +121,11 @@ class User {
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       lastLogin: lastLogin ?? this.lastLogin,
+      fcmToken: fcmToken ?? this.fcmToken,
+      isKYCVerified: isKYCVerified ?? this.isKYCVerified,
+      kycStatus: kycStatus ?? this.kycStatus,
+      kycVerifiedAt: kycVerifiedAt ?? this.kycVerifiedAt,
+      preferences: preferences ?? this.preferences,
     );
   }
 

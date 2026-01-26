@@ -80,6 +80,52 @@ class ProfilePage extends StatelessWidget {
                                   ),
                             ),
                           ],
+                          const SizedBox(height: AppTheme.spacingMedium),
+                          // KYC Status Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: (userProfile?.isKYCVerified ?? false)
+                                  ? Colors.green.withOpacity(0.1)
+                                  : Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: (userProfile?.isKYCVerified ?? false)
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  (userProfile?.isKYCVerified ?? false)
+                                      ? Icons.verified_user
+                                      : Icons.warning_amber,
+                                  color: (userProfile?.isKYCVerified ?? false)
+                                      ? Colors.green
+                                      : Colors.orange,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (userProfile?.isKYCVerified ?? false)
+                                      ? 'KYC Verified'
+                                      : 'KYC Not Verified',
+                                  style: TextStyle(
+                                    color: (userProfile?.isKYCVerified ?? false)
+                                        ? Colors.green
+                                        : Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ] else ...[
                           Text(
                             'Guest User',

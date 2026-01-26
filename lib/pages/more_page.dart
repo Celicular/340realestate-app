@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../providers/auth_provider.dart';
 import 'mortgage_calculator_page.dart';
 import 'agents_page.dart';
 import 'settings_page.dart';
@@ -9,6 +11,8 @@ import 'terms_page.dart';
 import 'privacy_policy_page.dart';
 import 'favorites_page.dart';
 import 'recently_viewed_page.dart';
+import 'chatbot_page.dart';
+import 'kyc_verification_page.dart';
 
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
@@ -75,6 +79,48 @@ class MorePage extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const AgentsPage(),
+                    ),
+                  );
+                },
+              ),
+              _MenuItem(
+                icon: Icons.chat_bubble_outline,
+                title: 'AI Assistant',
+                subtitle: 'Chat with our AI to find properties',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChatbotPage(),
+                    ),
+                  );
+                },
+              ),
+              _MenuItem(
+                icon: Icons.verified_user,
+                title: 'KYC Verification',
+                subtitle: 'Verify your identity',
+                onTap: () {
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  final userId = authProvider.user?.uid;
+                  if (userId != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => KYCVerificationPage(userId: userId),
+                      ),
+                    );
+                  }
+                },
+              ),
+              _MenuItem(
+                icon: Icons.compare_arrows,
+                title: 'Compare Properties',
+                subtitle: 'Side-by-side comparison (Coming Soon)',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Select properties from listings to compare'),
                     ),
                   );
                 },

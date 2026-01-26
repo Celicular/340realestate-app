@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/filter_button.dart';
 import '../widgets/animated_property_card.dart';
+import '../widgets/comparison_fab.dart';
 import '../models/property.dart';
 import '../utils/animations.dart';
 import '../providers/property_provider.dart';
@@ -45,6 +46,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: const ComparisonFAB(),
       body: SafeArea(
         child: Consumer<PropertyProvider>(
           builder: (context, propertyProvider, child) {
