@@ -229,26 +229,39 @@ class RentalProperty {
           ? (data['amenities'] as List).map((e) => e.toString()).toList()
           : [],
       imageLinks: (() {
-        // Try multiple image field locations
-        // 1. Direct imageLinks array
-        if (data['imageLinks'] != null) {
-          return sanitizeLinks(data['imageLinks']);
-        }
-        // 2. media.imageList array (primary in firestore.js)
+        List<String> result = [];
+        final propertyName = data['name'] ?? data['title'] ?? 'Unknown';
+
+        // 1. Try media.imageList first (primary for rentals)
         if (data['media'] is Map) {
           final media = data['media'] as Map<String, dynamic>;
-          if (media['imageList'] != null) {
-            return sanitizeLinks(media['imageList']);
+          if (media['imageList'] is List && (media['imageList'] as List).isNotEmpty) {
+            result = sanitizeLinks(media['imageList']);
+            print('🖼️ RENTAL [$propertyName]: Found ${result.length} images in media.imageList');
+            return result;
           }
-          // 3. media.imageLinks array (backward compatibility)
-          if (media['imageLinks'] != null) {
-            return sanitizeLinks(media['imageLinks']);
+          if (media['imageLinks'] is List && (media['imageLinks'] as List).isNotEmpty) {
+            result = sanitizeLinks(media['imageLinks']);
+            print('🖼️ RENTAL [$propertyName]: Found ${result.length} images in media.imageLinks');
+            return result;
           }
         }
-        // 4. Single image field (convert to array)
+
+        // 2. Try direct imageLinks array
+        if (data['imageLinks'] is List && (data['imageLinks'] as List).isNotEmpty) {
+          result = sanitizeLinks(data['imageLinks']);
+          print('🖼️ RENTAL [$propertyName]: Found ${result.length} images in imageLinks');
+          return result;
+        }
+
+        // 3. Single image field fallback
         if (data['image'] is String && data['image'].toString().isNotEmpty) {
-          return [data['image'].toString().replaceAll('`', '').trim()];
+          result = [data['image'].toString().replaceAll('`', '').trim()];
+          print('🖼️ RENTAL [$propertyName]: Found 1 image in image field');
+          return result;
         }
+
+        print('⚠️ RENTAL [$propertyName]: No images found!');
         return <String>[];
       })(),
       accommodation: data['accommodation'] as Map<String, dynamic>?,

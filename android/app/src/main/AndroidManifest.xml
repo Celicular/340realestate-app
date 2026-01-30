@@ -5,6 +5,8 @@
     <!-- Location permissions for nearby properties filtering -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Microphone permission for speech recognition -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     
     <application
         android:label="340 Real Estate"
@@ -64,6 +66,10 @@
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="whatsapp"/>
+        </intent>
+        <!-- Speech recognition query for Android 11+ -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

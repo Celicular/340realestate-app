@@ -3,7 +3,7 @@ import '../models/property.dart';
 
 class ComparisonProvider extends ChangeNotifier {
   final List<Property> _selectedProperties = [];
-  static const int maxComparisonCount = 4;
+  static const int maxComparisonCount = 2;
 
   List<Property> get selectedProperties => _selectedProperties;
   int get selectedCount => _selectedProperties.length;

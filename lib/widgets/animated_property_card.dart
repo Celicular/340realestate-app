@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/property_provider.dart';
 import '../providers/rental_provider.dart';
+import '../providers/comparison_provider.dart';
 import 'dart:convert';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
@@ -97,19 +98,110 @@ class _AnimatedPropertyCardState extends State<AnimatedPropertyCard>
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Property Image with Hero animation
-                Hero(
-                  tag: widget.heroTagPrefix != null
-                      ? '${widget.heroTagPrefix}_property_${widget.property.id}_${widget.index}'
-                      : 'property_${widget.property.id}_${widget.index}',
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppTheme.borderRadiusMedium),
+                Stack(
+                  children: [
+                    Hero(
+                      tag: widget.heroTagPrefix != null
+                          ? '${widget.heroTagPrefix}_property_${widget.property.id}_${widget.index}'
+                          : 'property_${widget.property.id}_${widget.index}',
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(AppTheme.borderRadiusMedium),
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: _buildImage(),
+                        ),
+                      ),
                     ),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: _buildImage(),
+                    // Compare Button
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Consumer<ComparisonProvider>(
+                        builder: (context, comparisonProvider, child) {
+                          final isSelected = comparisonProvider.isSelected(widget.property.id);
+                          final canAdd = comparisonProvider.canAddMore();
+                          return GestureDetector(
+                            onTap: () {
+                              if (!isSelected && !canAdd) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Maximum 2 properties can be compared'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                                return;
+                              }
+                              comparisonProvider.toggleProperty(widget.property);
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isSelected
+                                        ? 'Removed from comparison'
+                                        : 'Added to comparison (${comparisonProvider.selectedCount}/2)',
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppTheme.primaryColor
+                                    : Colors.black.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Icon(
+                                isSelected ? Icons.check : Icons.compare_arrows,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
+                    // Image count badge (only show if multiple images)
+                    if (widget.property.images.length > 1)
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.photo_library,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${widget.property.images.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 // Property Details
                 Padding(

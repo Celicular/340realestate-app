@@ -10,9 +10,11 @@ import '../models/property.dart';
 import '../utils/animations.dart';
 import '../providers/property_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/comparison_provider.dart';
 import 'recently_viewed_page.dart';
 import 'property_list_page.dart';
 import 'property_details_page.dart';
+import 'property_comparison_page.dart';
 import 'rentals_page.dart';
 import '../services/location_service.dart';
 import 'package:geolocator/geolocator.dart';
@@ -110,6 +112,91 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(width: AppTheme.spacingSmall),
                         FilterButton(
                           onTap: () => _showFilterDialog(context),
+                        ),
+                        const SizedBox(width: AppTheme.spacingSmall),
+                        // Compare Button
+                        Consumer<ComparisonProvider>(
+                          builder: (context, comparisonProvider, child) {
+                            final count = comparisonProvider.selectedProperties.length;
+                            return GestureDetector(
+                              onTap: () {
+                                if (count >= 2) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PropertyComparisonPage(
+                                        properties: comparisonProvider.selectedProperties,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        count == 0
+                                            ? 'Add properties to compare from property cards'
+                                            : 'Add at least one more property to compare',
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(AppTheme.spacingSmall),
+                                decoration: BoxDecoration(
+                                  color: count >= 2
+                                      ? AppTheme.primaryColor
+                                      : Theme.of(context).colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(
+                                    color: count >= 2
+                                        ? AppTheme.primaryColor
+                                        : AppTheme.textTertiary.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.compare_arrows,
+                                      color: count >= 2
+                                          ? Colors.white
+                                          : (Theme.of(context).brightness == Brightness.dark
+                                              ? Colors.white
+                                              : AppTheme.textPrimary),
+                                      size: 20,
+                                    ),
+                                    if (count > 0) ...[
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: count >= 2
+                                              ? Colors.white
+                                              : AppTheme.primaryColor,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          '$count',
+                                          style: TextStyle(
+                                            color: count >= 2
+                                                ? AppTheme.primaryColor
+                                                : Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

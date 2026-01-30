@@ -45,58 +45,6 @@ class MorePage extends StatelessWidget {
                 },
               ),
               _MenuItem(
-                icon: Icons.bookmark_outline,
-                title: 'Saved Properties',
-                subtitle: 'Your favorites in one place',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const FavoritesPage(),
-                    ),
-                  );
-                },
-              ),
-              _MenuItem(
-                icon: Icons.history,
-                title: 'Recently Viewed',
-                subtitle: 'See what you looked at',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RecentlyViewedPage(),
-                    ),
-                  );
-                },
-              ),
-              _MenuItem(
-                icon: Icons.people,
-                title: 'Our Agents',
-                subtitle: 'Meet our real estate experts',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AgentsPage(),
-                    ),
-                  );
-                },
-              ),
-              _MenuItem(
-                icon: Icons.chat_bubble_outline,
-                title: 'AI Assistant',
-                subtitle: 'Chat with our AI to find properties',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ChatbotPage(),
-                    ),
-                  );
-                },
-              ),
-              _MenuItem(
                 icon: Icons.verified_user,
                 title: 'KYC Verification',
                 subtitle: 'Verify your identity',
@@ -111,18 +59,6 @@ class MorePage extends StatelessWidget {
                       ),
                     );
                   }
-                },
-              ),
-              _MenuItem(
-                icon: Icons.compare_arrows,
-                title: 'Compare Properties',
-                subtitle: 'Side-by-side comparison (Coming Soon)',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Select properties from listings to compare'),
-                    ),
-                  );
                 },
               ),
             ],
@@ -155,6 +91,19 @@ class MorePage extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const AboutPage(contentType: 'us'),
+                    ),
+                  );
+                },
+              ),
+              _MenuItem(
+                icon: Icons.people,
+                title: 'Meet Our Team',
+                subtitle: 'Our real estate experts',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AgentsPage(),
                     ),
                   );
                 },

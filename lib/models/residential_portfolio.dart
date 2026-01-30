@@ -99,11 +99,16 @@ class ResidentialPortfolio {
       return <String>[];
     }();
 
-    List<String> imagesList = data['images'] != null 
-        ? sanitizeImages(data['images']) 
+    List<String> imagesList = data['images'] != null
+        ? sanitizeImages(data['images'])
         : sanitizeImages(data['imageUrl']);
+
+    final propertyName = data['title'] ?? 'Unknown';
+    print('🏠 RESIDENTIAL [$propertyName]: Found ${imagesList.length} images');
+
     if (imagesList.isEmpty) {
       imagesList = [AppTheme.placeholderImageUrl];
+      print('🏠 RESIDENTIAL [$propertyName]: Using placeholder image');
     }
 
     // Coerce location into a readable string

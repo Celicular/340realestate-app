@@ -173,7 +173,7 @@ class _SignInDialogState extends State<SignInDialog> {
       // Send OTP to email after successful login
       final email = _emailController.text.trim();
       final otp = await authProvider.sendOtp(email);
-      
+
       if (!mounted) return;
       setState(() => _isLoading = false);
 
@@ -199,11 +199,11 @@ class _SignInDialogState extends State<SignInDialog> {
             },
           ),
         );
-        
+
         // After OTP dialog is closed, close the login dialog and show success
         if (!mounted) return;
         Navigator.pop(context); // Close login dialog
-        
+
         // Use Future.microtask to ensure SnackBar shows after dialog is fully closed
         Future.microtask(() {
           if (mounted) {
@@ -231,6 +231,13 @@ class _SignInDialogState extends State<SignInDialog> {
         ),
       );
     }
+  }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => _ForgotPasswordDialog(parentContext: context),
+    );
   }
 
   @override
@@ -279,9 +286,7 @@ class _SignInDialogState extends State<SignInDialog> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {
-                  // TODO: Implement forgot password
-                },
+                onPressed: () => _showForgotPasswordDialog(context),
                 child: const Text(
                   'Forgot Password?',
                   style: TextStyle(color: AppTheme.primaryColor),
@@ -335,6 +340,112 @@ class _SignInDialogState extends State<SignInDialog> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ForgotPasswordDialog extends StatefulWidget {
+  final BuildContext parentContext;
+  
+  const _ForgotPasswordDialog({required this.parentContext});
+
+  @override
+  State<_ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Reset Password'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Enter your email address and we\'ll send you a link to reset your password.'),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              hintText: 'Enter your email',
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : () async {
+            final email = _emailController.text.trim();
+            if (email.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please enter your email')),
+              );
+              return;
+            }
+
+            setState(() => _isLoading = true);
+
+            try {
+              final authProvider = Provider.of<AuthProvider>(widget.parentContext, listen: false);
+              final success = await authProvider.sendPasswordResetEmail(email);
+
+              if (!mounted) return;
+              
+              if (success) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password reset email sent! Check your inbox.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } else {
+                setState(() => _isLoading = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(authProvider.error ?? 'Failed to send reset email'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (!mounted) return;
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(e.toString()),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          child: _isLoading 
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Send Reset Link'),
+        ),
+      ],
     );
   }
 }

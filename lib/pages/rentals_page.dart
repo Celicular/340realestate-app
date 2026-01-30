@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/filter_button.dart';
+import '../widgets/compare_button.dart';
 import '../widgets/animated_property_card.dart';
 import '../models/property.dart';
 import '../utils/animations.dart';
@@ -22,12 +23,13 @@ class RentalsPage extends StatefulWidget {
 
 class _RentalsPageState extends State<RentalsPage> {
   Property _mapRental(RentalProperty r, String priceMode) {
+    debugPrint('🏠 RENTALS_PAGE [${r.name}]: imageLinks has ${r.imageLinks.length} images');
     return Property(
       id: r.id,
       name: r.name,
       location: r.address,
       price: priceMode == 'night' ? r.pricePerNight : r.pricePerNight * 7,
-      imageUrl: r.imageUrl,
+      images: r.imageLinks,
       description: r.description,
       bedrooms: r.bedrooms,
       bathrooms: r.bathrooms,
@@ -108,6 +110,8 @@ class _RentalsPageState extends State<RentalsPage> {
                             _showFilterDialog(context);
                           },
                         ),
+                        const SizedBox(width: AppTheme.spacingSmall),
+                        const CompareButton(),
                       ],
                     ),
                   ),

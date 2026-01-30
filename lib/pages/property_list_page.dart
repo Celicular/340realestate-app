@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/filter_button.dart';
+import '../widgets/compare_button.dart';
 import '../widgets/animated_property_card.dart';
 import '../models/property.dart';
 import '../utils/animations.dart';
@@ -73,6 +74,8 @@ class _PropertyListPageState extends State<PropertyListPage> {
                             _showFilterDialog(context);
                           },
                         ),
+                        const SizedBox(width: AppTheme.spacingSmall),
+                        const CompareButton(),
                       ],
                     ),
                   ),

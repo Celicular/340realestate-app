@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_theme.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/filter_button.dart';
+import '../widgets/compare_button.dart';
 import '../widgets/animated_property_card.dart';
 import '../models/property.dart';
 import '../models/residential_portfolio.dart';
@@ -160,12 +161,13 @@ class _BuyPageState extends State<BuyPage> {
   }
 
   Property _mapResidential(ResidentialPortfolio r) {
+    debugPrint('🏠 BUY_PAGE [${r.title}]: images has ${r.images.length} images');
     return Property(
       id: r.id,
       name: r.title,
       location: r.location,
       price: _parsePrice(r.price),
-      imageUrl: r.imageUrl,
+      images: r.images,
       description: r.description,
       bedrooms: r.bedrooms,
       bathrooms: r.bathrooms,
@@ -181,12 +183,13 @@ class _BuyPageState extends State<BuyPage> {
   Property _mapLand(LandPortfolio l) {
     final acres = l.lotSizeAcres;
     final sqft = acres > 0 ? (acres * 43560).round() : 0;
+    debugPrint('🏔️ BUY_PAGE [${l.title}]: images has ${l.images?.length ?? 0} images');
     return Property(
       id: l.id,
       name: l.title,
       location: l.locationString,
       price: l.price,
-      imageUrl: l.imageUrl,
+      images: l.images ?? [],
       description: l.description,
       bedrooms: 0,
       bathrooms: 0,
@@ -303,6 +306,8 @@ class _BuyPageState extends State<BuyPage> {
               ),
               const SizedBox(width: AppTheme.spacingSmall),
               FilterButton(onTap: () => _showResidentialFilterDialog(context)),
+              const SizedBox(width: AppTheme.spacingSmall),
+              const CompareButton(),
             ],
           ),
           const SizedBox(height: AppTheme.spacingMedium),
@@ -404,6 +409,8 @@ class _BuyPageState extends State<BuyPage> {
               ),
               const SizedBox(width: AppTheme.spacingSmall),
               FilterButton(onTap: () => _showLandFilterDialog(context)),
+              const SizedBox(width: AppTheme.spacingSmall),
+              const CompareButton(),
             ],
           ),
           const SizedBox(height: AppTheme.spacingMedium),

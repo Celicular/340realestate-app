@@ -14,7 +14,7 @@ class Property {
   final String name;
   final String location;
   final double price;
-  final String imageUrl;
+  final List<String> images;
   final String description;
   final int bedrooms;
   final int bathrooms;
@@ -28,12 +28,15 @@ class Property {
   final String status; // 'draft', 'published', 'archived'
   final String? createdBy; // User ID who created this property
 
+  // Computed getter for backward compatibility
+  String get imageUrl => images.isNotEmpty ? images.first : '';
+
   Property({
     required this.id,
     required this.name,
     required this.location,
     required this.price,
-    required this.imageUrl,
+    this.images = const [],
     required this.description,
     required this.bedrooms,
     required this.bathrooms,
@@ -115,18 +118,60 @@ class Property {
       }
     }
 
-    // Extract image URL from images array
-    String imageUrl = '';
-    if (data['images'] is List && (data['images'] as List).isNotEmpty) {
-      final images = data['images'] as List;
-      if (images[0] is Map) {
-        imageUrl = (images[0] as Map<String, dynamic>)['url'] ?? '';
-      } else {
-        imageUrl = images[0].toString();
+    // Extract all images from various possible structures
+    List<String> imagesList = [];
+
+    // First try nested 'media.imageList' (used by rentalProperties)
+    if (data['media'] is Map) {
+      final media = data['media'] as Map<String, dynamic>;
+      if (media['imageList'] is List && (media['imageList'] as List).isNotEmpty) {
+        final imagesData = media['imageList'] as List;
+        for (var img in imagesData) {
+          if (img is String && img.isNotEmpty) {
+            imagesList.add(img);
+          }
+        }
+        print('🖼️ Found ${imagesList.length} images in media.imageList for ${data['title'] ?? data['name']}');
       }
-    } else {
-      imageUrl = data['imageUrl'] ?? '';
     }
+
+    // Then try 'imageLinks' at root level
+    if (imagesList.isEmpty && data['imageLinks'] is List && (data['imageLinks'] as List).isNotEmpty) {
+      final imagesData = data['imageLinks'] as List;
+      for (var img in imagesData) {
+        if (img is String && img.isNotEmpty) {
+          imagesList.add(img);
+        }
+      }
+      print('🖼️ Found ${imagesList.length} images in imageLinks for ${data['title'] ?? data['name']}');
+    }
+
+    // Then try 'images' array at root level
+    if (imagesList.isEmpty && data['images'] is List && (data['images'] as List).isNotEmpty) {
+      final imagesData = data['images'] as List;
+      for (var img in imagesData) {
+        if (img is String && img.isNotEmpty) {
+          imagesList.add(img);
+        } else if (img is Map) {
+          final url = (img as Map<String, dynamic>)['url'] ?? '';
+          if (url.isNotEmpty) imagesList.add(url);
+        }
+      }
+      print('🖼️ Found ${imagesList.length} images in images array for ${data['title'] ?? data['name']}');
+    }
+
+    // Fallback to single 'image' or 'imageUrl' field
+    if (imagesList.isEmpty) {
+      if (data['image'] != null && data['image'] != '') {
+        imagesList.add(data['image']);
+        print('🖼️ Using single image field for ${data['title'] ?? data['name']}');
+      } else if (data['imageUrl'] != null && data['imageUrl'] != '') {
+        imagesList.add(data['imageUrl']);
+        print('🖼️ Using single imageUrl field for ${data['title'] ?? data['name']}');
+      }
+    }
+
+    print('📸 Total images for ${data['title'] ?? data['name']}: ${imagesList.length}');
 
     // Extract amenities or view as amenities
     List<String> amenities = [];
@@ -141,7 +186,7 @@ class Property {
       name: data['title'] ?? data['name'] ?? '',
       location: locationStr,
       price: price,
-      imageUrl: imageUrl,
+      images: imagesList,
       description: data['description'] ?? 'No description provided',
       bedrooms: bedrooms,
       bathrooms: bathrooms,
@@ -163,7 +208,8 @@ class Property {
       'name': name,
       'location': location,
       'price': price,
-      'imageUrl': imageUrl,
+      'images': images,
+      'imageUrl': imageUrl, // Keep for backward compatibility
       'description': description,
       'bedrooms': bedrooms,
       'bathrooms': bathrooms,
@@ -214,8 +260,12 @@ class PropertyData {
         name: 'Modern Luxury Villa',
         location: 'Downtown, San Francisco',
         price: 2500000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+        images: [
+          'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+          'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+          'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+        ],
         description:
             'Stunning modern villa with panoramic city views. Features open floor plan, high-end finishes, and premium amenities. Perfect for entertaining with spacious living areas and gourmet kitchen.',
         bedrooms: 4,
@@ -230,8 +280,11 @@ class PropertyData {
         name: 'Cozy Family Home',
         location: 'Suburban, Los Angeles',
         price: 850000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+        images: [
+          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+          'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800',
+          'https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=800',
+        ],
         description:
             'Beautiful family home in a quiet neighborhood. Features large backyard, updated kitchen, and comfortable living spaces. Great schools nearby.',
         bedrooms: 3,
@@ -246,8 +299,11 @@ class PropertyData {
         name: 'Urban Loft Apartment',
         location: 'Midtown, New York',
         price: 1200000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+        images: [
+          'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+          'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+          'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+        ],
         description:
             'Stylish loft apartment in the heart of the city. High ceilings, exposed brick, and modern amenities. Walking distance to restaurants and shops.',
         bedrooms: 2,
@@ -262,8 +318,13 @@ class PropertyData {
         name: 'Beachfront Condo',
         location: 'Ocean View, Miami',
         price: 1800000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+        images: [
+          'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+          'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+          'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800',
+          'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+        ],
         description:
             'Luxurious beachfront condo with stunning ocean views. Direct beach access, resort-style amenities, and premium finishes throughout.',
         bedrooms: 3,
@@ -278,8 +339,11 @@ class PropertyData {
         name: 'Mountain Retreat',
         location: 'Aspen, Colorado',
         price: 3200000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=800',
+        images: [
+          'https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=800',
+          'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+          'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+        ],
         description:
             'Spectacular mountain retreat with breathtaking views. Rustic elegance meets modern luxury. Perfect for year-round enjoyment.',
         bedrooms: 5,
@@ -300,8 +364,10 @@ class PropertyData {
         name: 'Contemporary Townhouse',
         location: 'Seattle, Washington',
         price: 950000,
-        imageUrl:
-            'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800',
+        images: [
+          'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800',
+          'https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=800',
+        ],
         description:
             'Modern townhouse with sleek design and smart home features. Located in vibrant neighborhood with easy access to downtown.',
         bedrooms: 3,

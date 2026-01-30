@@ -149,7 +149,7 @@ class _AgentsPageState extends State<AgentsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Our Agents'),
+        title: const Text('Meet Our Team'),
         elevation: 0,
       ),
       body: _isLoading

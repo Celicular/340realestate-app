@@ -7,6 +7,8 @@ import 'edit_profile_page.dart';
 import 'notifications_page.dart';
 import 'help_support_page.dart';
 import 'booking_history_page.dart';
+import 'favorites_page.dart';
+import 'recently_viewed_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -174,6 +176,32 @@ class ProfilePage extends StatelessWidget {
                               );
                             },
                           ),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.bookmark_outline,
+                          title: 'Saved Properties',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const FavoritesPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.history,
+                          title: 'Recently Viewed',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const RecentlyViewedPage(),
+                              ),
+                            );
+                          },
+                        ),
                         _buildMenuItem(
                           context,
                           icon: Icons.notifications_outlined,

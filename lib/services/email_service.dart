@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:flutter/foundation.dart';
+import '../config/env_config.dart';
 
 /// Service for sending OTP emails via SMTP.
 /// 
@@ -33,9 +34,9 @@ class EmailService {
       );
 
       final message = Message()
-        ..from = Address(_smtpUser, '360 Real Estate')
+        ..from = Address(_smtpUser, EnvConfig.appName)
         ..recipients.add(email)
-        ..subject = 'Your Verification Code - 360 Real Estate'
+        ..subject = 'Your Verification Code - ${EnvConfig.appName}'
         ..html = _buildEmailHtml(otp);
 
       final sendReport = await send(message, smtpServer);
@@ -64,7 +65,7 @@ class EmailService {
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center; border-radius: 12px 12px 0 0;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">360 Real Estate</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">${EnvConfig.appName}</h1>
               <p style="color: rgba(255, 255, 255, 0.9); margin: 10px 0 0; font-size: 14px;">Your trusted property partner</p>
             </td>
           </tr>
@@ -92,7 +93,7 @@ class EmailService {
           <tr>
             <td style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-radius: 0 0 12px 12px;">
               <p style="color: #999999; margin: 0; font-size: 12px;">
-                © 2024 360 Real Estate. All rights reserved.
+                © 2024 ${EnvConfig.appName}. All rights reserved.
               </p>
             </td>
           </tr>

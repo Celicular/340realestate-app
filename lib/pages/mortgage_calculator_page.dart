@@ -182,10 +182,21 @@ class _MortgageCalculatorPageState extends State<MortgageCalculatorPage> {
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
+                      height: 56,
+                      child: ElevatedButton.icon(
                         onPressed: _calculate,
-                        child: const Text('Calculate'),
+                        icon: const Icon(Icons.calculate, size: 20),
+                        label: const Text('Calculate'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 3,
+                          textStyle: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
                     ),
                   ],

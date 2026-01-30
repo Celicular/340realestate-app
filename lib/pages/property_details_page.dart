@@ -35,7 +35,8 @@ class PropertyDetailsPage extends StatefulWidget {
 class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
   bool _descExpanded = false;
   bool _amenitiesExpanded = false;
-  
+  int _currentImageIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -337,20 +338,70 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
   }
 
   Widget _buildHeroImage(BuildContext context) {
+    final imageCount = widget.property.images.length;
+
     return Stack(
       children: [
-        Hero(
-          tag: widget.heroTagPrefix != null && widget.heroIndex != null
-              ? '${widget.heroTagPrefix}_property_${widget.property.id}_${widget.heroIndex}'
-              : widget.heroIndex != null
-                  ? 'property_${widget.property.id}_${widget.heroIndex}'
-                  : 'property_${widget.property.id}',
-          child: SizedBox(
-            height: 350,
-            width: double.infinity,
-            child: _buildImage(),
-          ),
+        SizedBox(
+          height: 350,
+          width: double.infinity,
+          child: imageCount > 1
+              ? PageView.builder(
+                  itemCount: imageCount,
+                  onPageChanged: (index) {
+                    setState(() => _currentImageIndex = index);
+                  },
+                  itemBuilder: (context, index) {
+                    return Hero(
+                      tag: index == 0
+                          ? (widget.heroTagPrefix != null && widget.heroIndex != null
+                              ? '${widget.heroTagPrefix}_property_${widget.property.id}_${widget.heroIndex}'
+                              : widget.heroIndex != null
+                                  ? 'property_${widget.property.id}_${widget.heroIndex}'
+                                  : 'property_${widget.property.id}')
+                          : 'property_${widget.property.id}_image_$index',
+                      child: _buildImage(index),
+                    );
+                  },
+                )
+              : Hero(
+                  tag: widget.heroTagPrefix != null && widget.heroIndex != null
+                      ? '${widget.heroTagPrefix}_property_${widget.property.id}_${widget.heroIndex}'
+                      : widget.heroIndex != null
+                          ? 'property_${widget.property.id}_${widget.heroIndex}'
+                          : 'property_${widget.property.id}',
+                  child: _buildImage(0),
+                ),
         ),
+        // Image counter overlay
+        if (imageCount > 1)
+          Positioned(
+            top: 50,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${_currentImageIndex + 1} / $imageCount',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        // Page indicator dots
+        if (imageCount > 1)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: _buildPageIndicator(imageCount),
+          ),
         // AppBar Overlay
         Positioned(
           top: 0,
@@ -434,9 +485,13 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
     );
   }
 
-  Widget _buildImage() {
-    final url = widget.property.imageUrl;
+  Widget _buildImage(int index) {
+    final images = widget.property.images;
+    final url = images.isNotEmpty && index < images.length
+        ? images[index]
+        : '';
     const placeholder = AppTheme.placeholderImageUrl;
+
     if (url.isEmpty) {
       return Image.network(
         placeholder,
@@ -517,6 +572,38 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildPageIndicator(int imageCount) {
+    // Only show dots for 7 or fewer images
+    // For many images, the counter at top-right is sufficient
+    const maxDots = 7;
+
+    if (imageCount > maxDots) {
+      // Don't show dots for many images - counter at top is enough
+      return const SizedBox.shrink();
+    }
+
+    // Show dots for 7 or fewer images
+    return Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          imageCount,
+          (index) => Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _currentImageIndex == index
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.4),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

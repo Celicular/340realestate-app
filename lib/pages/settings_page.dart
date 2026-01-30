@@ -39,7 +39,7 @@ class SettingsPage extends StatelessWidget {
                 icon: Icons.dark_mode_outlined,
                 title: 'Appearance',
                 subtitle: _themeSubtitle(
-                    Provider.of<ThemeProvider>(context).themeMode),
+                    Provider.of<ThemeProvider>(context).appThemeMode),
                 onTap: () {
                   _showThemeDialog(context);
                 },
@@ -161,7 +161,7 @@ class SettingsPage extends StatelessWidget {
 
   void _showThemeDialog(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    final current = themeProvider.themeMode;
+    final current = themeProvider.appThemeMode;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -172,33 +172,44 @@ class SettingsPage extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.light_mode_outlined),
               title: const Text('Light'),
-              trailing: current == ThemeMode.light
+              trailing: current == AppThemeMode.light
                   ? const Icon(Icons.check, color: AppTheme.primaryColor)
                   : null,
               onTap: () {
-                themeProvider.setThemeMode(ThemeMode.light);
+                themeProvider.setThemeMode(AppThemeMode.light);
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.dark_mode_outlined),
               title: const Text('Dark'),
-              trailing: current == ThemeMode.dark
+              trailing: current == AppThemeMode.dark
                   ? const Icon(Icons.check, color: AppTheme.primaryColor)
                   : null,
               onTap: () {
-                themeProvider.setThemeMode(ThemeMode.dark);
+                themeProvider.setThemeMode(AppThemeMode.dark);
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.brightness_auto),
               title: const Text('System'),
-              trailing: current == ThemeMode.system
+              trailing: current == AppThemeMode.system
                   ? const Icon(Icons.check, color: AppTheme.primaryColor)
                   : null,
               onTap: () {
-                themeProvider.setThemeMode(ThemeMode.system);
+                themeProvider.setThemeMode(AppThemeMode.system);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.schedule),
+              title: const Text('Auto (12h rotation)'),
+              trailing: current == AppThemeMode.auto
+                  ? const Icon(Icons.check, color: AppTheme.primaryColor)
+                  : null,
+              onTap: () {
+                themeProvider.setThemeMode(AppThemeMode.auto);
                 Navigator.pop(context);
               },
             ),
@@ -253,9 +264,10 @@ class SettingsPage extends StatelessWidget {
     return '#${hex.substring(2)}';
   }
 
-  String _themeSubtitle(ThemeMode mode) {
-    if (mode == ThemeMode.light) return 'Light';
-    if (mode == ThemeMode.dark) return 'Dark';
+  String _themeSubtitle(AppThemeMode mode) {
+    if (mode == AppThemeMode.light) return 'Light';
+    if (mode == AppThemeMode.dark) return 'Dark';
+    if (mode == AppThemeMode.auto) return 'Auto (12h rotation)';
     return 'System';
   }
 }

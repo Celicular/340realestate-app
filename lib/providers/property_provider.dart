@@ -113,12 +113,13 @@ class PropertyProvider with ChangeNotifier {
 
   // Helper to map ResidentialPortfolio to Property
   Property _mapResidentialToProperty(ResidentialPortfolio r) {
+    debugPrint('📦 MAPPING [${r.title}]: images has ${r.images.length} images');
     return Property(
       id: r.id,
       name: r.title,
       location: r.location,
       price: _parsePrice(r.price),
-      imageUrl: r.imageUrl,
+      images: r.images,
       description: r.description,
       bedrooms: r.bedrooms,
       bathrooms: r.bathrooms,
@@ -140,7 +141,7 @@ class PropertyProvider with ChangeNotifier {
       name: l.title,
       location: l.locationString,
       price: l.price,
-      imageUrl: l.imageUrl,
+      images: l.images ?? [],
       description: l.description,
       bedrooms: 0,
       bathrooms: 0,
@@ -155,12 +156,13 @@ class PropertyProvider with ChangeNotifier {
 
   // Helper to map RentalProperty to Property
   Property _mapRentalToProperty(RentalProperty rental) {
+    debugPrint('📦 MAPPING [${rental.name}]: imageLinks has ${rental.imageLinks.length} images');
     return Property(
       id: rental.id,
       name: rental.name,
       location: rental.address,
       price: rental.pricePerNight * 7,
-      imageUrl: rental.imageUrl,
+      images: rental.imageLinks,
       description: rental.description,
       bedrooms: rental.bedrooms,
       bathrooms: rental.bathrooms,

@@ -278,14 +278,14 @@ class _AddEditPropertyPageState extends State<AddEditPropertyPage> {
           id: '', // Will be set by Firestore
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
-          location: _locationAddress.isNotEmpty 
-              ? _locationAddress 
+          location: _locationAddress.isNotEmpty
+              ? _locationAddress
               : _locationController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           bedrooms: int.parse(_bedroomsController.text.trim()),
           bathrooms: int.parse(_bathroomsController.text.trim()),
           sqft: int.parse(_sqftController.text.trim()),
-          imageUrl: imageUrl,
+          images: _uploadedImageUrls,
           amenities: [],
           type: _selectedType,
           status: _selectedStatus,
