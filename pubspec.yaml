@@ -1,0 +1,73 @@
+name: realestate_app
+description: A modern Flutter real estate app with clean minimal design
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^7.0.2
+  cupertino_icons: ^1.0.6
+  firebase_core: ^4.2.1
+  cloud_firestore: ^6.1.0
+  firebase_auth: ^6.1.2
+  # google_sign_in: ^6.1.6  # Temporarily disabled due to dependency conflict
+  provider: ^6.1.1
+  firebase_storage: ^13.0.4
+  url_launcher: ^6.3.0
+  share_plus: ^12.0.1
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.0
+  geolocator: ^14.0.2
+  permission_handler: ^12.0.1
+  timeago: ^3.6.1
+  supabase_flutter: ^2.3.0
+  image_picker: ^1.0.7
+  shared_preferences: ^2.5.4
+  mailer: ^6.0.0
+
+  # Push Notifications
+  firebase_messaging: ^16.1.0
+  flutter_local_notifications: ^18.0.1
+
+  # KYC
+  file_picker: ^8.0.0
+  path: ^1.9.0
+  intl: ^0.19.0
+
+  # Voice Search
+  speech_to_text: ^7.0.0
+
+  # Appointments
+  table_calendar: ^3.1.2
+  timezone: ^0.9.4
+
+  # Comparison
+  syncfusion_flutter_charts: ^27.2.5
+
+  # Chatbot
+  http: ^1.2.0
+  flutter_chat_ui: ^1.6.15
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "roud.jpg"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+
+flutter:
+  uses-material-design: true
+  assets:
+    - logo.jpeg
+    - roud.jpg

@@ -1,0 +1,24 @@
+﻿Running Gradle task 'bundleRelease'...                             16.1s
+flutter : Release app bundle failed 
+to strip debug symbols from native 
+libraries.
+At line:1 char:1
++ flutter build appbundle --release 
+2>&1 | Out-File -FilePath build_log 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo          : NotSp 
+   ecified: (Release app bun...tiv  
+  e libraries.:String) [], Remote   
+ Exception
+    + FullyQualifiedErrorId : Nativ 
+   eCommandError
+ 
+Please run flutter doctor and 
+ensure that the Android toolchain 
+does not
+report any issues.
+
+Otherwise, file an issue at https://
+github.com/flutter/flutter/issues.
